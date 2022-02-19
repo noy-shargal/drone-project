@@ -1,6 +1,7 @@
 import csv
 
 
+
 class Obstacle:
 
     def __init__(self,  num_of_points, x_meter, y_meter, z_meter, obs_type):
@@ -19,12 +20,17 @@ class Obstacles:
 
     def __init__(self):
         self._points_map = dict()
-        self._map = None
 
+    def get_obstacle(self, id):
+        if self._points_map[id] is None:
+            self._points_map[id] = list()
+        return  self._points_map[id]
     def read(self):
         with open('obstacles_100m_above_sea_level.csv', newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
+                obs = self.get_obstacle(row[0])
+
                 obs = Obstacle(*row)
                 key = row[1], row[2], row[3]
                 self._points_map[key] = obs
