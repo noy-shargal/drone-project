@@ -1,50 +1,47 @@
 import csv
-
-
-
-class Obstacle:
-
-    def __init__(self,  num_of_points, x_meter, y_meter, z_meter, obs_type):
-
-        self.num_of_points = num_of_points
-        self.x_meter = x_meter
-        self.y_meter = y_meter
-        self.z_meter = z_meter
-        self.obs_type = obs_type
-
-    def get(self):
-        return self.num_of_points, self.x_meter, self.y_meter, self.z_meter, self.obs_type
+from shapely.geometry import Polygon,Point,box, mapping
 
 
 class Obstacles:
 
     def __init__(self):
         self._points_map = dict()
+        self._polygons_map = dict()
+        self._is_map_inited = False
 
-    def get_obstacle(self, id):
-        if self._points_map[id] is None:
+    def get_obstacle_points_list(self, id):
+
+        if id not in self._points_map.keys():
             self._points_map[id] = list()
-        return  self._points_map[id]
-    def read(self):
+        return self._points_map[id]
+
+
+    def read_csv(self):
         with open('obstacles_100m_above_sea_level.csv', newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
+            next(reader, None)  # skip the headers
             for row in reader:
-                obs = self.get_obstacle(row[0])
+                obs_id = row[4]
+                obs_list = self.get_obstacle_points_list(obs_id)
+                x_str = row[1]
+                y_str = row[2]
 
-                obs = Obstacle(*row)
-                key = row[1], row[2], row[3]
-                self._points_map[key] = obs
+                x = float(x_str)
+                y = float(y_str)
+                point = Point(x,y)
+                obs_list.append(point)
 
-    def print(self):
+            for polygon_id, points in self._points_map.items():
+                polygon = Polygon(points)
+                self._polygons_map[polygon_id] = polygon.convex_hull
 
-        for item in self._points_map.keys():
-            print(item)
+            self._is_map_inited = True
 
     def is_position_blocked(self, x, y, z):
 
         key = x, y, z
         return  self._points_map[key] is not None
 
-    def add_obstacle(self, x, y, z):
+    def get_polygons(self):
 
-        self._points_map[x, y, z] = Obstacle(None, x, y, z, None)
+        return self._polygons_map.values()

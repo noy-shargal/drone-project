@@ -1,13 +1,7 @@
 import math
 
-import numpy as np
-
+from MapDrawer import MapDrawer
 from DroneClient import DroneClient
-import time
-import airsim.utils
-import msvcrt
-import csv
-
 from DroneTypes import Position
 from Obstacles import Obstacles
 
@@ -62,14 +56,20 @@ def reached_goal_2D(curr: Position, goal: Position):
     return False
 
 
-
-
 if __name__ == "__main__":
 
     obs = Obstacles()
-    obs.read()
-    obs.add_obstacle(10, 10, 99)
-    obs.print()
+    obs.read_csv()
+    md = MapDrawer()
+    polygons = obs.get_polygons()
+    md.add_polygons(obs.get_polygons())
+    md.show()
+
+    y = 3*8
+    # obs = Obstacles()
+    # obs.read()
+    # obs.add_obstacle(10, 10, 99)
+    # obs.print()
 
 
     # client = MyDroneClient()
