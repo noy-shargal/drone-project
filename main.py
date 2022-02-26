@@ -63,19 +63,28 @@ if __name__ == "__main__":
 
     sourcePoints = [(-1500.0, -1200.0), (-1540.0, -1200.0), (-1540.0, -1240.0), (-1500.0, -1240.0), (-1500.0, -1200.0)]
     source = Polygon(sourcePoints)
-    sourceVertex = VGPoint(-1500.0, -1200.0)
-    destination = Polygon([(250.0, -200.0), (250.0, -240.0), (290.0, -240.0), (290.0, -200.0), (250.0, -200.0)])
+    dstPoints = [(250.0, -200.0), (250.0, -240.0), (290.0, -240.0), (290.0, -200.0), (250.0, -200.0)]
+    destination = Polygon(dstPoints)
     obs = Obstacles()
     obs.read_csv()
+
+    obs.set_start_polygon(source)
+    obs.set_destination_polygon(destination)
+
+
+    # obs.set_start(Point(sourcePoints[0]))
+    # obs.set_destination(Point(dstPoints[0]))
+
     md = MapDrawer()
     polygons = obs.get_polygons()
-    md.add_polygons(obs.get_polygons())
-    md.set_source(source)
-    md.set_destination(destination)
+    md.add_polygons(polygons)
+    print("Number of polygons is: "+str(len(polygons)))
+
+    obs.build_visibility_graph()
+    edges = obs.get_edges()
+    md.add_edges(edges)
+    # pts = list(source.coords)
     md.show()
-
-    pts = list(source.coords)
-
 
     y = 3*8
     # obs = Obstacles()
