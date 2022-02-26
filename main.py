@@ -1,9 +1,12 @@
 import math
-
+import pyvisgraph as vg
+from pyvisgraph.graph import Graph, Edge
+from pyvisgraph.graph import Point as VGPoint
 from MapDrawer import MapDrawer
 from DroneClient import DroneClient
 from DroneTypes import Position
 from Obstacles import Obstacles
+from shapely.geometry import Polygon,Point,box, mapping
 
 
 class MyDroneClient (DroneClient):
@@ -58,12 +61,21 @@ def reached_goal_2D(curr: Position, goal: Position):
 
 if __name__ == "__main__":
 
+    sourcePoints = [(-1500.0, -1200.0), (-1540.0, -1200.0), (-1540.0, -1240.0), (-1500.0, -1240.0), (-1500.0, -1200.0)]
+    source = Polygon(sourcePoints)
+    sourceVertex = VGPoint(-1500.0, -1200.0)
+    destination = Polygon([(250.0, -200.0), (250.0, -240.0), (290.0, -240.0), (290.0, -200.0), (250.0, -200.0)])
     obs = Obstacles()
     obs.read_csv()
     md = MapDrawer()
     polygons = obs.get_polygons()
     md.add_polygons(obs.get_polygons())
+    md.set_source(source)
+    md.set_destination(destination)
     md.show()
+
+    pts = list(source.coords)
+
 
     y = 3*8
     # obs = Obstacles()
