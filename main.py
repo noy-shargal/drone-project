@@ -1,7 +1,5 @@
 import math
-import pyvisgraph as vg
-from pyvisgraph.graph import Graph, Edge
-from pyvisgraph.graph import Point as VGPoint
+from Dijkstra import Dijkstra
 from MapDrawer import MapDrawer
 from DroneClient import DroneClient
 from DroneTypes import Position
@@ -72,8 +70,6 @@ if __name__ == "__main__":
     obs.set_destination_polygon(destination)
 
 
-    # obs.set_start(Point(sourcePoints[0]))
-    # obs.set_destination(Point(dstPoints[0]))
 
     md = MapDrawer()
     polygons = obs.get_polygons()
@@ -83,9 +79,16 @@ if __name__ == "__main__":
     obs.build_visibility_graph()
     edges = obs.get_edges()
     md.add_edges(edges)
-    # pts = list(source.coords)
-    md.show()
+    src = obs.get_source_vertex()
+    dst = obs.get_destination_vertex()
+    dij = Dijkstra()
+    found = dij.search(src, dst)
+    path = None
+    if found:
+        path = dij.get_path()
+        md.set_path(path)
 
+    md.show()
     y = 3*8
     # obs = Obstacles()
     # obs.read()

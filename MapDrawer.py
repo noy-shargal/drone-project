@@ -1,5 +1,9 @@
 import matplotlib.pyplot as plt
 from descartes import PolygonPatch
+from shapely.geometry import Polygon, Point, box, LineString
+from Vertex import Vertex
+from Edge import Edge
+
 
 
 class MapDrawer:
@@ -40,6 +44,14 @@ class MapDrawer:
     def set_destination(self, polygon, ):
         self._destination = polygon
         self._ax.add_artist(PolygonPatch(polygon, fc='green'))
+
+    def set_path(self, path):
+
+        for i in range(len(path) -1):
+            p1 = path[i].point()
+            p2 = path[i+1].point()
+
+            self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='green', linewidth=2))
 
     @staticmethod
     def show():

@@ -1,7 +1,7 @@
 import csv
 import Edge
 import Vertex
-from shapely.geometry import Polygon, Point, box, mapping, LineString
+from shapely.geometry import Polygon, Point, box, LineString
 from Vertex import Vertex
 from Edge import Edge
 
@@ -16,6 +16,8 @@ class Obstacles:
         self._destination = None
         self._edges = list()
         self._vertices = dict()
+        self._source_vertex = None
+        self._destination_vertex = None
 
     def get_obstacle_points_list(self, id):
 
@@ -41,7 +43,9 @@ class Obstacles:
             px = x[i]
             py = y[i]
             point = Point(px, py)
-            new_pts.append(point)
+            if point not in new_pts:
+                new_pts.append(point)
+
         return new_pts
 
     def read_csv(self):
@@ -59,7 +63,8 @@ class Obstacles:
                 bbox = polygon.bounds
                 padding = 4
                 box_polygon = box(bbox[0] - padding, bbox[1] - padding, bbox[2] + padding, bbox[3] + padding)
-                new_pts = self._coords_2_points(box_polygon.exterior.coords)
+                coords = box_polygon.exterior.coords
+                new_pts = self._coords_2_points(coords)
                 self._points_map[polygon_id] = new_pts
                 self._polygons_map[polygon_id] = box_polygon
 
@@ -134,6 +139,10 @@ class Obstacles:
         for poly_id, points in self._points_map.items():
             for point in points:
                 vertex = Vertex(point)
+                if poly_id == 'start' and self._destination_vertex is None:
+                    self._source_vertex = vertex
+                if poly_id == 'destination' and self._destination_vertex is None:
+                    self._destination_vertex = vertex
                 x, y = point.x, point.y
                 key = x, y
                 self._vertices[key] = vertex
@@ -173,3 +182,9 @@ class Obstacles:
         self._polygons_map['destination'] = destination
         pts = self._coords_2_points(destination.exterior.coords)
         self._points_map['destination'] = pts
+
+    def get_source_vertex(self):
+        return self._source_vertex
+
+    def get_destination_vertex(self):
+        return self._destination_vertex
