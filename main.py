@@ -59,71 +59,35 @@ def reached_goal_2D(curr: Position, goal: Position):
 
 if __name__ == "__main__":
 
-    sourcePoints = [(-1500.0, -1200.0), (-1540.0, -1200.0), (-1540.0, -1240.0), (-1500.0, -1240.0), (-1500.0, -1200.0)]
-    source = Polygon(sourcePoints)
-    dstPoints = [(0.0, -600.0), (0.0, -640.0), (40.0, -640.0), (40.0, -600.0), (0.0, -600.0)]
-    destination = Polygon(dstPoints)
-    obs = Obstacles()
-    obs.read_csv()
-
-    obs.set_start_polygon(source)
-    obs.set_destination_polygon(destination)
 
 
+    client = MyDroneClient()
+    client.connect()
 
-    md = MapDrawer()
-    polygons = obs.get_polygons()
-    md.add_polygons(polygons)
-    print("Number of polygons is: "+str(len(polygons)))
+    print(client.isConnected())
 
-    obs.build_visibility_graph()
-    edges = obs.get_edges()
-    md.add_edges(edges)
-    src = obs.get_source_vertex()
-    dst = obs.get_destination_vertex()
-    dij = Dijkstra()
-    found = dij.search(src, dst)
-    path = None
-    if found:
-        path = dij.get_path()
-        md.set_path(path)
-    print ("Total Distance: " + str(dst.get_distance()))
-    print ("Number Of vetices visited :" + str(dij.get_num_of_vertices_visited()))
-    md.show()
-    y = 3*8
-    # obs = Obstacles()
-    # obs.read()
-    # obs.add_obstacle(10, 10, 99)
-    # obs.print()
+    time.sleep(4)
+    client.setAtPosition(-346, -700, -100)
 
+    time.sleep(3)
+    goal = Position()
+    goal.x_m, goal.y_m, goal.z_m = -346, -500, -100
+    client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, 5)
 
-    # client = MyDroneClient()
-    # client.connect()
-    #
-    # print(client.isConnected())
-    #
-    # time.sleep(4)
-    # client.setAtPosition(-346, -700, -100)
-    #
-    # time.sleep(3)
-    # goal = Position()
-    # goal.x_m, goal.y_m, goal.z_m = -346, -500, -100
-    # client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, 5)
-    #
-    # while True:
-    #     lidar_data = client.getLidarData()
-    #     print("Lidar Data: "+str(lidar_data))
-    #
-    #     print("Position: ",str(client.getPose().pos ))
-    #
-    #     if reachedGoal2D(client.getPose().pos, goal):
-    #         print("Reached goal")
-    #         client.stop()
-    #
-    #     if client.senseObstacle():
-    #         print ("Found obstacle.")
-    #         client.stop()
-    #     time.sleep(1)
+    while True:
+        lidar_data = client.getLidarData()
+        print("Lidar Data: "+str(lidar_data))
+
+        print("Position: ",str(client.getPose().pos ))
+
+        if reachedGoal2D(client.getPose().pos, goal):
+            print("Reached goal")
+            client.stop()
+
+        if client.senseObstacle():
+            print ("Found obstacle.")
+            client.stop()
+        time.sleep(1)
 
 
         

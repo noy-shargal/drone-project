@@ -1,5 +1,4 @@
-from shapely.geometry import Point
-import Vertex
+from DijkstraAlgo import Vertex
 
 
 class Edge:

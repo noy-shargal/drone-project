@@ -1,9 +1,5 @@
 import matplotlib.pyplot as plt
 from descartes import PolygonPatch
-from shapely.geometry import Polygon, Point, box, LineString
-from Vertex import Vertex
-from Edge import Edge
-
 
 
 class MapDrawer:

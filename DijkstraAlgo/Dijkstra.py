@@ -1,4 +1,4 @@
-from Vertex import Vertex
+from DijkstraAlgo.Vertex import Vertex
 from queue import PriorityQueue
 
 
