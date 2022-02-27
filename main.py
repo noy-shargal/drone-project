@@ -3,8 +3,6 @@ from Dijkstra import Dijkstra
 from MapDrawer import MapDrawer
 from DroneClient import DroneClient
 from DroneTypes import Position
-from Obstacles import Obstacles
-from shapely.geometry import Polygon,Point,box, mapping
 
 
 class MyDroneClient (DroneClient):
