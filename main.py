@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     sourcePoints = [(-1500.0, -1200.0), (-1540.0, -1200.0), (-1540.0, -1240.0), (-1500.0, -1240.0), (-1500.0, -1200.0)]
     source = Polygon(sourcePoints)
-    dstPoints = [(250.0, -200.0), (250.0, -240.0), (290.0, -240.0), (290.0, -200.0), (250.0, -200.0)]
+    dstPoints = [(0.0, -600.0), (0.0, -640.0), (40.0, -640.0), (40.0, -600.0), (0.0, -600.0)]
     destination = Polygon(dstPoints)
     obs = Obstacles()
     obs.read_csv()
@@ -87,7 +87,8 @@ if __name__ == "__main__":
     if found:
         path = dij.get_path()
         md.set_path(path)
-
+    print ("Total Distance: " + str(dst.get_distance()))
+    print ("Number Of vetices visited :" + str(dij.get_num_of_vertices_visited()))
     md.show()
     y = 3*8
     # obs = Obstacles()

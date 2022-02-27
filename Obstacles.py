@@ -49,7 +49,7 @@ class Obstacles:
         return new_pts
 
     def read_csv(self):
-        with open('10-obstacles_100m_above_sea_level.csv', newline='') as csvfile:
+        with open('obstacles_100m_above_sea_level.csv', newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader, None)  # skip the headers
             for row in reader:

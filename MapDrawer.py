@@ -34,7 +34,7 @@ class MapDrawer:
 
         for edge in edges:
             p1, p2 = edge.one.point(), edge.two.point()
-            self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='#2f33a3', linewidth=1))
+            self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='#2f33a3', linewidth=1, alpha=0.5))
 
     def set_source(self, polygon):
 

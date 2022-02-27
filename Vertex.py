@@ -6,7 +6,7 @@ class Vertex:
 
     def __init__(self, point: Point):
         self._point = point
-        self._distance_from_source = 1000000.0
+        self._distance_from_source = 1000000.0  # Infinity
         self._h_for_distance_from_goal = None
         self._edges = list()
         self._is_visited = False
@@ -14,6 +14,9 @@ class Vertex:
 
     def __eq__(self, other):
         return self._point == other.point()
+
+    def __lt__(self, other):
+        return self._distance_from_source < other.get_distance()
 
     def point(self):
         return self._point
