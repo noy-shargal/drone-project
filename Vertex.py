@@ -1,22 +1,26 @@
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 import Edge
 
 
 class Vertex:
 
-    def __init__(self, point: Point):
+    def __init__(self, point: Point, polygon: Polygon):
         self._point = point
         self._distance_from_source = 1000000.0  # Infinity
         self._h_for_distance_from_goal = None
         self._edges = list()
         self._is_visited = False
         self._previous_vertex = None
+        self._polygon = polygon
 
     def __eq__(self, other):
         return self._point == other.point()
 
     def __lt__(self, other):
         return self._distance_from_source < other.get_distance()
+
+    def polygon(self):
+        return self._polygon
 
     def point(self):
         return self._point

@@ -1,4 +1,6 @@
 import math
+from queue import PriorityQueue
+
 from Dijkstra import Dijkstra
 from MapDrawer import MapDrawer
 from DroneClient import DroneClient
@@ -44,6 +46,41 @@ class MyDroneClient (DroneClient):
         return True
 
 
+from Vertex import Vertex
+def test_pq():
+    Q = PriorityQueue()
+
+    v1 = Vertex(Point(0.0,0.0))
+    v2 = Vertex(Point(0.0, 0.0))
+    v3 = Vertex(Point(0.0, 0.0))
+    v4 = Vertex(Point(0.0, 0.0))
+    v5 = Vertex(Point(0.0, 0.0))
+
+    v1.set_distance(1.0)
+    v2.set_distance(22.0)
+    v3.set_distance(3.0)
+    v4.set_distance(4.0)
+    v5.set_distance(5.0)
+
+    Q.put(v2)
+    Q.put(v4)
+    Q.put(v5)
+    Q.put(v1)
+    Q.put(v3)
+
+    v2.set_distance(0.5)
+    Q.get()
+    Q.put(v2)
+    vv1 = Q.get()
+    vv2 = Q.get()
+    vv3 = Q.get()
+    vv4 = Q.get()
+    vv5 = Q.get()
+
+
+    x = 1
+
+
 
 
 def reached_goal_2D(curr: Position, goal: Position):
@@ -59,6 +96,7 @@ def reached_goal_2D(curr: Position, goal: Position):
 
 if __name__ == "__main__":
 
+    # test_pq()
     sourcePoints = [(-1500.0, -1200.0), (-1540.0, -1200.0), (-1540.0, -1240.0), (-1500.0, -1240.0), (-1500.0, -1200.0)]
     source = Polygon(sourcePoints)
     dstPoints = [(0.0, -600.0), (0.0, -640.0), (40.0, -640.0), (40.0, -600.0), (0.0, -600.0)]
@@ -91,10 +129,7 @@ if __name__ == "__main__":
     print ("Number Of vetices visited :" + str(dij.get_num_of_vertices_visited()))
     md.show()
     y = 3*8
-    # obs = Obstacles()
-    # obs.read()
-    # obs.add_obstacle(10, 10, 99)
-    # obs.print()
+
 
 
     # client = MyDroneClient()

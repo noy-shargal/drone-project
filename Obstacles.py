@@ -85,6 +85,34 @@ class Obstacles:
 
         return vertices
 
+    #def is_poin
+    def is_line_tangent(self, p1: Point, p2: Point, vertex: Vertex):
+
+        polygon = vertex.polygon()
+        a = (p1.y - p2.y) / (p1.x - p2.x)
+        b = p1.y - a * p1.x
+
+        p_near_p2_x =  p1.x +1
+        p_near_p2_y = a * p_near_p2_x + b
+        p_near_p2 = Point(p_near_p2_x, p_near_p2_y)
+
+        if polygon.contains(p_near_p2):
+            return False
+
+        p_near_p2_x =  p1.x - 1
+        p_near_p2_y = a * p_near_p2_x + b
+        p_near_p2 = Point(p_near_p2_x, p_near_p2_y)
+
+        if polygon.contains(p_near_p2):
+            return False
+
+
+    def _is_edge_tangent(self, edge: Edge):
+        p1 = edge.one.point()
+        p2 = edge.one.point()
+        v1 = p1.polygon()
+        v2 = p2.polygon()
+
     def is_valid_edge(self, edge: Edge):
         p1 = edge.one.point()
         p2 = edge.two.point()
@@ -96,6 +124,10 @@ class Obstacles:
             ints = line.intersection(poly)
             if len(ints.coords) > 1:
                 return False
+
+            if not self._is_edge_tangent(edge):
+                return False
+
         return True
 
     @staticmethod
@@ -112,16 +144,16 @@ class Obstacles:
     def _add_polygon_edges(self, polygon: Polygon):
         points = self._coords_2_points(polygon.exterior.coords)
 
-        for i in range (len(points) - 1):
+        for i in range(len(points) - 1):
             x1, y1 = points[i].x, points[i].y
             v1 = self._vertices[x1, y1]
 
-            x2, y2 = points[i+1].x, points[i+1].y
+            x2, y2 = points[i + 1].x, points[i + 1].y
             v2 = self._vertices[x2, y2]
             edge = Edge(v1, v2)
             self._edges.append(edge)
 
-        x1, y1 = points[len(points)-1].x, points[len(points)-1].y
+        x1, y1 = points[len(points) - 1].x, points[len(points) - 1].y
         v1 = self._vertices[x1, y1]
 
         x2, y2 = points[0].x, points[0].y
@@ -138,7 +170,8 @@ class Obstacles:
     def _build_vertices(self):
         for poly_id, points in self._points_map.items():
             for point in points:
-                vertex = Vertex(point)
+                polygon = self._polygons_map[poly_id]
+                vertex = Vertex(point, polygon)
                 if poly_id == 'start' and self._destination_vertex is None:
                     self._source_vertex = vertex
                 if poly_id == 'destination' and self._destination_vertex is None:
@@ -160,7 +193,7 @@ class Obstacles:
                 self._edges.append(edge)
 
         self._add_polygons_edges()
-        print("Number of edges = "+str(len(self._edges)))
+        print("Number of edges = " + str(len(self._edges)))
 
     def get_edges(self):
         return self._edges
