@@ -29,10 +29,8 @@ class Dijkstra:
             edges = vertex.get_edges()
             for edge in edges:
                 next_vertex = edge.get_other_vertex(vertex)
-
                 edge_distance = edge.get_distance()
                 new_distance = vertex.get_distance() + edge_distance
-
                 if new_distance < next_vertex.get_distance():
                     next_vertex.set_prev_vertex(vertex)
                     next_vertex.set_distance(new_distance)
@@ -46,10 +44,3 @@ class Dijkstra:
 
     def get_path(self):
         return self._path
-
-
-
-
-
-
-
