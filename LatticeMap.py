@@ -75,7 +75,7 @@ class RepulsionMap(LatticeMap):
         x, y = self._index_to_coord(i, j)
         point = Point(x, y)
         distance = obs.exterior.distance(point)
-        if (distance > self._q_star):
+        if distance > self._q_star:
             return 0.0
         return 0.5 * self._s * (1.0 / distance - 1.0 / self._q_star) ** 2
 
@@ -89,3 +89,14 @@ class RepulsionMap(LatticeMap):
         for i in range(self._size_x):
             for j in range(self._size_y):
                 self._map[i][j] = self._repulsion_value(i, j)
+
+
+# class ObstacleMap (LatticeMap):
+#
+#     def __init__(self, obstacles_list):
+#         super(ObstacleMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, type)
+#
+#         self._obstacles = polygons_list
+#         self._q_star = q_star
+#         self._s = s
+

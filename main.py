@@ -1,16 +1,13 @@
 import math
-from Dijkstra import Dijkstra
-from MapDrawer import MapDrawer
 from DroneClient import DroneClient
 from DroneTypes import Position
 
 
-class MyDroneClient (DroneClient):
+class MyDroneClient(DroneClient):
 
     def __init__(self):
         super().__init__()
         self.stopped = False
-
 
     def toCoords(self, pose):
 
@@ -42,13 +39,10 @@ class MyDroneClient (DroneClient):
         return True
 
 
-
-
 def reached_goal_2D(curr: Position, goal: Position):
-
-    diff_x =  curr.x_m - goal.x_m
+    diff_x = curr.x_m - goal.x_m
     diff_y = curr.y_m - goal.y_m
-    dist = math.sqrt(diff_x*diff_x + diff_y*diff_y)
+    dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
 
     if dist < 11.0:
         return True
@@ -56,8 +50,6 @@ def reached_goal_2D(curr: Position, goal: Position):
 
 
 if __name__ == "__main__":
-
-
 
     client = MyDroneClient()
     client.connect()
@@ -74,18 +66,15 @@ if __name__ == "__main__":
 
     while True:
         lidar_data = client.getLidarData()
-        print("Lidar Data: "+str(lidar_data))
+        print("Lidar Data: " + str(lidar_data))
 
-        print("Position: ",str(client.getPose().pos ))
+        print("Position: ", str(client.getPose().pos))
 
         if reachedGoal2D(client.getPose().pos, goal):
             print("Reached goal")
             client.stop()
 
         if client.senseObstacle():
-            print ("Found obstacle.")
+            print("Found obstacle.")
             client.stop()
         time.sleep(1)
-
-
-        
