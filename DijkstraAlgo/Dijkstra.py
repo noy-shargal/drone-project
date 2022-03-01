@@ -23,6 +23,7 @@ class Dijkstra:
 
         while not self._Q.empty():
             vertex = self._Q.get()
+
             edges = vertex.get_edges()
             for edge in edges:
                 next_vertex = edge.get_other_vertex(vertex)

@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 from typing import Tuple, List
 import math
@@ -19,10 +20,19 @@ class LatticeMap:
         self._map = np.ndarray((self._size_x, self._size_y), dtype=type)
 
     def value(self, x: float, y: float):
-        x, y = self._coord_to_index(x, y)
-        return self._map[x][y]
+        i, j = self.coord_to_index(x, y)
+        return self._map[i][j]
 
-    def _coord_to_index(self, x: float, y: float):
+    def get_local_values(self, x, y):
+        i, j = self.coord_to_index(x, y)
+        return self._map[i-1:i+1][j-1:j+1]
+
+    def index_to_coord(self, i, j):
+        x = self._min_x + (i + 0.5) * self._unit_size
+        y = self._min_y + (j + 0.5) * self._unit_size
+        return x, y
+
+    def coord_to_index(self, x: float, y: float):
         return (x - self._min_x) / self._unit_size, (y - self._min_y) / self._unit_size
 
     def _dist(self, cell1: Tuple, cell2: Tuple):
@@ -37,8 +47,8 @@ class AttractionMap(LatticeMap):
         self._start = start
         self._goal = goal
 
-        self._start_i_j = self._coord_to_index(*start)
-        self._goal_i_j = self._coord_to_index(*goal)
+        self._start_i_j = self.coord_to_index(*start)
+        self._goal_i_j = self.coord_to_index(*goal)
         self._d = d
         self._k = k
 
@@ -66,13 +76,8 @@ class RepulsionMap(LatticeMap):
         self._q_star = q_star
         self._s = s
 
-    def _index_to_coord(self, i, j):
-        x = self._min_x + (i + 0.5) * self._unit_size
-        y = self._min_y + (j + 0.5) * self._unit_size
-        return x, y
-
     def _repulsion_from_obstacle(self, obs: Polygon, i, j):
-        x, y = self._index_to_coord(i, j)
+        x, y = self.index_to_coord(i, j)
         point = Point(x, y)
         distance = obs.exterior.distance(point)
         if distance > self._q_star:
@@ -91,12 +96,19 @@ class RepulsionMap(LatticeMap):
                 self._map[i][j] = self._repulsion_value(i, j)
 
 
-# class ObstacleMap (LatticeMap):
-#
-#     def __init__(self, obstacles_list):
-#         super(ObstacleMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, type)
-#
-#         self._obstacles = polygons_list
-#         self._q_star = q_star
-#         self._s = s
+class ObstacleMap(LatticeMap):
 
+    def __init__(self, obstacles_list, min_x, max_x, min_y, max_y, unit_size, dtype):
+
+        super(ObstacleMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, dtype)
+        self._obstacles = obstacles_list
+
+    def _obstacle_value(self, i, j):
+        x, y = self.index_to_coord(i, j)
+        p = Point(x, y)
+        return any([obs.contains(p) for obs in self._obstacles])
+
+    def _init_map(self):
+        for i in range(self._size_x):
+            for j in range(self._size_y):
+                self._map[i][j] = self._obstacle_value(i, j)
