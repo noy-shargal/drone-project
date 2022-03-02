@@ -7,10 +7,10 @@ from shapely.geometry import Polygon, Point, box, LineString
 
 class ObstaclesCSVReader:
 
-    def __init(self, file_name='obstacles_100m_above_sea_level.csv'):
+    def __init__(self, file_name='obstacles_100m_above_sea_level.csv'):
 
         self._points_map = dict()  # obs_id -> list() of points
-        self._polygons_map = dict  # obs_id -> list() of polygons
+        self._polygons_map = dict()  # obs_id -> list() of polygons
         self._read_csv(file_name)
         self._min_x, self._max_x, self._min_y, self._max_y = self._calc_boundaries()
 
@@ -39,7 +39,7 @@ class ObstaclesCSVReader:
 
             for polygon_id, points in self._points_map.items():
                 polygon = Polygon(points)
-                self._polygons_map[polygon_id] = polygon
+                self._polygons_map[polygon_id] = polygon.convex_hull
 
     def get_obstacle_points_list(self, id):
 

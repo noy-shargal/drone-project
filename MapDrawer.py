@@ -4,10 +4,10 @@ from descartes import PolygonPatch
 
 class MapDrawer:
 
-    def __init__(self, min_x, min_y, max_x, max_y):
+    def __init__(self, min_x, max_x, min_y, max_y):
 
         self._fig, self._ax = plt.subplots()
-        self._ax.set_xlim(max_x, min_x)
+        self._ax.set_xlim(min_x, max_x)
         self._ax.set_ylim(min_y, max_y)
         self._ax.set_xlabel('X - Axis')
         self._ax.set_ylabel('Y - Axis')
@@ -38,9 +38,9 @@ class MapDrawer:
     def set_path(self, path):
 
         for i in range(len(path) -1):
-            p1 = path[i].point()
-            p2 = path[i+1].point()
-            self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='green', linewidth=2))
+            p1 = path[i]
+            p2 = path[i+1]
+            self._ax.add_patch(plt.Line2D([p1[0], p2[0]], [p1[1], p2[1]], color='green', linewidth=2))
 
     @staticmethod
     def show():

@@ -25,7 +25,7 @@ class LatticeMap:
 
     def get_local_values(self, x, y):
         i, j = self.coord_to_index(x, y)
-        return self._map[i-1:i+1][j-1:j+1]
+        return self._map[i-1:i+2, j-1:j+2]
 
     def index_to_coord(self, i, j):
         x = self._min_x + (i + 0.5) * self._unit_size
@@ -33,7 +33,7 @@ class LatticeMap:
         return x, y
 
     def coord_to_index(self, x: float, y: float):
-        return (x - self._min_x) / self._unit_size, (y - self._min_y) / self._unit_size
+        return int((x - self._min_x) / self._unit_size), int((y - self._min_y) / self._unit_size)
 
     def _dist(self, cell1: Tuple, cell2: Tuple):
         return math.fabs(cell1[0] - cell2[0]) + math.fabs(cell1[1] - cell2[1])
@@ -58,7 +58,9 @@ class AttractionMap(LatticeMap):
         dist = self._dist(self._goal_i_j, (i, j))
         if dist >= self._d:
             return self._k * dist * self._d - 0.5 * self._k * self._d ** 2
-        return (self._k / 2.0) / dist ** 2
+        if dist > 0.0:
+            return (self._k / 2.0) / dist ** 2
+        return -numpy.float(numpy.inf)
 
     def _init_lattice(self):
         for i in range(self._size_x):
