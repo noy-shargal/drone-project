@@ -1,17 +1,21 @@
 from shapely.geometry import Point, Polygon
-import Edge
+import Edge, math
 
 
 class Vertex:
 
-    def __init__(self, point: Point, polygon: Polygon):
+    def __init__(self, point: Point, polygon: Polygon, goal=None ):
+        self._settled = False
         self._point = point
         self._distance_from_source = 1000000.0  # Infinity
-        self._h_for_distance_from_goal = None
+
         self._edges = list()
         self._is_visited = False
         self._previous_vertex = None
         self._polygon = polygon
+
+        if goal is not None:
+            self._h_for_distance_from_goal = math.dist([point.x, point.y], [goal.x, goal.y])
 
     def __eq__(self, other):
         return self._point == other.point()
@@ -31,11 +35,11 @@ class Vertex:
     def get_edges(self):
         return self._edges
 
-    def is_visited(self):
-        return self._is_visited
+    def is_settled(self):
+        return self._settled
 
-    def visit(self):
-        self._is_visited = True
+    def settle(self):
+        self._settled = True
 
     def get_distance(self):
         return self._distance_from_source

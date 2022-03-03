@@ -2,7 +2,8 @@ from Vertex import Vertex
 from queue import PriorityQueue
 from datetime import datetime
 
-class Dijkstra:
+
+class AStar:
 
     def __init__(self):
 
@@ -18,22 +19,19 @@ class Dijkstra:
 
     def search(self, source: Vertex, destination: Vertex):
         now = datetime.now()
-        current_time = now.strftime("%H:%M:%S.%f")
+        current_time = now.strftime("%H:%M:%S")
         print("Dijkstra start Time =", current_time)
         source.set_distance(0)
         self._Q.put(source)
 
         while not self._Q.empty():
             vertex = self._Q.get()
-            vertex.settle()
             self._num_of_vertices_visited += 1
             if vertex == destination:
                 break
             edges = vertex.get_edges()
             for edge in edges:
                 next_vertex = edge.get_other_vertex(vertex)
-                if next_vertex.is_settled():
-                    continue
                 edge_distance = edge.get_distance()
                 new_distance = vertex.get_distance() + edge_distance
                 if new_distance < next_vertex.get_distance():
@@ -43,7 +41,7 @@ class Dijkstra:
 
         self._update_path(destination)
         later = datetime.now()
-        finish_time = later.strftime("%H:%M:%S.%f")
+        finish_time = later.strftime("%H:%M:%S")
         print("Dijkstra finish Time =", finish_time)
 
         return True

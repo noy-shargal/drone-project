@@ -1,9 +1,24 @@
 import csv
+from typing import List
+
 import Edge
 import Vertex
 from shapely.geometry import Polygon, Point, box, LineString
 from Vertex import Vertex
 from Edge import Edge
+
+
+class Graph:
+    def __init__(self):
+        self._vertices = None
+        self._edges = None
+
+    def set(self, edges: List, vertices: List):
+        self._edges = edges
+        self._vertices = vertices
+
+    def save(self):
+        pass
 
 
 class Obstacles:
@@ -18,6 +33,8 @@ class Obstacles:
         self._vertices = dict()
         self._source_vertex = None
         self._destination_vertex = None
+
+        self._graph = Graph()
 
     def get_obstacle_points_list(self, id):
 
@@ -36,7 +53,6 @@ class Obstacles:
 
     @staticmethod
     def _coords_2_points(coords):
-
         x, y = coords.xy
         new_pts = []
         for i in range(len(x)):
@@ -85,33 +101,44 @@ class Obstacles:
 
         return vertices
 
-    #def is_poin
-    def is_line_tangent(self, p1: Point, p2: Point, vertex: Vertex):
+    # def is_poin
+    @staticmethod
+    def _is_line_tangent(p1: Point, p2: Point, p1_vertex: Vertex):
 
-        polygon = vertex.polygon()
+        if p1.x == p2.x:  # TODO: for a = 0
+            return False
+
+        polygon = p1_vertex.polygon()
         a = (p1.y - p2.y) / (p1.x - p2.x)
         b = p1.y - a * p1.x
 
-        p_near_p2_x =  p1.x +1
-        p_near_p2_y = a * p_near_p2_x + b
-        p_near_p2 = Point(p_near_p2_x, p_near_p2_y)
+        p_near_p1_x = p1.x + 1
+        p_near_p1_y = a * p_near_p1_x + b
+        p_near_p1 = Point(p_near_p1_x, p_near_p1_y)
 
-        if polygon.contains(p_near_p2):
+        if polygon.contains(p_near_p1):
             return False
 
-        p_near_p2_x =  p1.x - 1
-        p_near_p2_y = a * p_near_p2_x + b
-        p_near_p2 = Point(p_near_p2_x, p_near_p2_y)
+        p_near_p1_x = p1.x - 1
+        p_near_p1_y = a * p_near_p1_x + b
+        p_near_p1 = Point(p_near_p1_x, p_near_p1_y)
 
-        if polygon.contains(p_near_p2):
+        if polygon.contains(p_near_p1):
             return False
 
+        return True
 
-    def _is_edge_tangent(self, edge: Edge):
+    @staticmethod
+    def _is_edge_tangent(edge: Edge):
         p1 = edge.one.point()
-        p2 = edge.one.point()
-        v1 = p1.polygon()
-        v2 = p2.polygon()
+        p2 = edge.two.point()
+        if not Obstacles._is_line_tangent(p1, p2, edge.one):
+            return False
+
+        if not Obstacles._is_line_tangent(p2, p1, edge.two):
+            return False
+
+        return True
 
     def is_valid_edge(self, edge: Edge):
         p1 = edge.one.point()
@@ -136,8 +163,10 @@ class Obstacles:
         combs = []
         vertices_list = list(vertices.values())
         for i in range(len(vertices_list)):
-            for j in range(i + 1, len(vertices)):
+            for j in range(i + 1, len(vertices_list)):
                 pair = vertices_list[i], vertices_list[j]
+                if vertices_list[i] == vertices_list[j]:
+                    i = 9
                 combs.append(pair)
         return combs
 
@@ -168,14 +197,21 @@ class Obstacles:
             self._add_polygon_edges(poly)
 
     def _build_vertices(self):
+
+
+
         for poly_id, points in self._points_map.items():
             for point in points:
                 polygon = self._polygons_map[poly_id]
-                vertex = Vertex(point, polygon)
-                if poly_id == 'start' and self._destination_vertex is None:
+
+                vertex = Vertex(point, polygon, self._destination_vertex.point())
+
+                if poly_id == 'start' and self._source_vertex is None:
                     self._source_vertex = vertex
                 if poly_id == 'destination' and self._destination_vertex is None:
                     self._destination_vertex = vertex
+
+
                 x, y = point.x, point.y
                 key = x, y
                 self._vertices[key] = vertex
@@ -194,6 +230,8 @@ class Obstacles:
 
         self._add_polygons_edges()
         print("Number of edges = " + str(len(self._edges)))
+        self._graph.set(self._edges, list(self._vertices.values()))
+
 
     def get_edges(self):
         return self._edges
