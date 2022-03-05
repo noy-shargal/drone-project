@@ -32,8 +32,11 @@ class AStar:
             edges = vertex.get_edges()
             for edge in edges:
                 next_vertex = edge.get_other_vertex(vertex)
+                if next_vertex.is_settled():
+                    continue
                 edge_distance = edge.get_distance()
                 new_distance = vertex.get_distance() + edge_distance
+                f = new_distance + new_distance.get_h()
                 if new_distance < next_vertex.get_distance():
                     next_vertex.set_prev_vertex(vertex)
                     next_vertex.set_distance(new_distance)

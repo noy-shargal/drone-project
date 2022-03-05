@@ -1,14 +1,12 @@
 import matplotlib.pyplot as plt
-from descartes import PolygonPatch
 from shapely.geometry import Polygon, Point, box, LineString
-from Vertex import Vertex
-from Edge import Edge
 
 
 
 class MapDrawer:
 
     def __init__(self):
+
 
         self._fig, self._ax = plt.subplots()
         self._ax.set_xlim(300, -1700.0)
@@ -36,14 +34,16 @@ class MapDrawer:
             p1, p2 = edge.one.point(), edge.two.point()
             self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='#2f33a3', linewidth=1, alpha=0.5))
 
-    def set_source(self, polygon):
+    def set_source(self, src: Point):
 
-        self._source = polygon
-        self._ax.add_artist(PolygonPatch(polygon, fc='red') )
+        self._source = src
+        circle = plt.Circle((src.x, src.y),radius=10, color='green')
+        self._ax.add_artist(circle)
 
-    def set_destination(self, polygon, ):
-        self._destination = polygon
-        self._ax.add_artist(PolygonPatch(polygon, fc='green'))
+    def set_destination(self, dst: Point, ):
+        self._destination = dst
+        circle = plt.Circle((dst.x, dst.y),radius=10, color='red', edgecolor='black')
+        self._ax.add_artist(circle)
 
     def set_path(self, path):
 
@@ -52,6 +52,14 @@ class MapDrawer:
             p2 = path[i+1].point()
 
             self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='green', linewidth=2))
+
+    def set_real_path(self, path):
+
+        for i in range(len(path) - 1):
+            p1 = path[i]
+            p2 = path[i + 1]
+
+            self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='red', linewidth=2))
 
     @staticmethod
     def show():

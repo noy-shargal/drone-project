@@ -16,12 +16,19 @@ class Vertex:
 
         if goal is not None:
             self._h_for_distance_from_goal = math.dist([point.x, point.y], [goal.x, goal.y])
+        else:
+            self._h_for_distance_from_goal = 0.0
 
     def __eq__(self, other):
         return self._point == other.point()
 
     def __lt__(self, other):
-        return self._distance_from_source < other.get_distance()
+        return self._distance_from_source + self._h_for_distance_from_goal < other.get_distance()
+
+
+    def set_goal(self, goal):
+        if goal is not None:
+            self._h_for_distance_from_goal = math.dist([self._point.x, self._point.y], [goal.x, goal.y])
 
     def polygon(self):
         return self._polygon
@@ -49,6 +56,9 @@ class Vertex:
 
     def get_h(self):
         return self._h_for_distance_from_goal
+
+    def get_f(self):
+        return self._h_for_distance_from_goal + self._h_for_distance_from_goal
 
     def set_h(self, distance):
         self._h_for_distance_from_goal = distance

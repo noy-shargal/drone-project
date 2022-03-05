@@ -6,19 +6,27 @@ import Vertex
 from shapely.geometry import Polygon, Point, box, LineString
 from Vertex import Vertex
 from Edge import Edge
+import json
 
 
-class Graph:
+class PersistentGraph:
     def __init__(self):
         self._vertices = None
         self._edges = None
 
     def set(self, edges: List, vertices: List):
         self._edges = edges
-        self._vertices = vertices
+        self._vertices = list(vertices)
+
+    def get(self):
+        return  self._vertices, self._edges
 
     def save(self):
         pass
+
+    def to_json(self):
+        json.dump(self, cls=PersistentGraph)
+
 
 
 class Obstacles:
@@ -29,18 +37,24 @@ class Obstacles:
         self._is_map_inited = False
         self._source = None
         self._destination = None
-        self._edges = list()
+        self._edges_list = list()
         self._vertices = dict()
+        self._vertices_list = list()
         self._source_vertex = None
         self._destination_vertex = None
-
-        self._graph = Graph()
+        self._graph_is_built = False
 
     def get_obstacle_points_list(self, id):
 
         if id not in self._points_map.keys():
             self._points_map[id] = list()
         return self._points_map[id]
+
+    def is_point_in_obstacles_map(self, point: Point):
+        for obstacle in self._polygons_map.values():
+            if obstacle.contains(point):
+                return True
+        return False
 
     @staticmethod
     def _get_coord(row):
@@ -65,7 +79,7 @@ class Obstacles:
         return new_pts
 
     def read_csv(self):
-        with open('obstacles_100m_above_sea_level.csv', newline='') as csvfile:
+        with open('compact-obstacles_100m_above_sea_level.csv', newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             next(reader, None)  # skip the headers
             for row in reader:
@@ -152,8 +166,8 @@ class Obstacles:
             if len(ints.coords) > 1:
                 return False
 
-            if not self._is_edge_tangent(edge):
-                return False
+            # if not self._is_edge_tangent(edge): :TODO : enable
+            #     return False
 
         return True
 
@@ -180,7 +194,7 @@ class Obstacles:
             x2, y2 = points[i + 1].x, points[i + 1].y
             v2 = self._vertices[x2, y2]
             edge = Edge(v1, v2)
-            self._edges.append(edge)
+            self._edges_list.append(edge)
 
         x1, y1 = points[len(points) - 1].x, points[len(points) - 1].y
         v1 = self._vertices[x1, y1]
@@ -189,7 +203,7 @@ class Obstacles:
         v2 = self._vertices[x2, y2]
 
         edge = Edge(v1, v2)
-        self._edges.append(edge)
+        self._edges_list.append(edge)
 
     def _add_polygons_edges(self):
 
@@ -198,27 +212,34 @@ class Obstacles:
 
     def _build_vertices(self):
 
-
-
         for poly_id, points in self._points_map.items():
             for point in points:
                 polygon = self._polygons_map[poly_id]
-
-                vertex = Vertex(point, polygon, self._destination_vertex.point())
-
-                if poly_id == 'start' and self._source_vertex is None:
-                    self._source_vertex = vertex
-                if poly_id == 'destination' and self._destination_vertex is None:
-                    self._destination_vertex = vertex
-
-
+                vertex = Vertex(point, polygon, None)
                 x, y = point.x, point.y
                 key = x, y
                 self._vertices[key] = vertex
 
-    def build_visibility_graph(self):
+    def set_vertices(self, vertices: List):
+        self._vertices = vertices
+
+    def set_edges(self, edges: List):
+        self._edges_list = edges
+
+    def get_edges(self):
+        return self._edges_list
+
+    def get_vertices(self):
+        return self._vertices_list
+
+    def build_visibility_graph(self, graph: PersistentGraph = None):
+        if graph is not None:
+            self._vertices_list , self._edges_list = graph.get()
+            self._graph_is_built = True
+            return
 
         self._build_vertices()
+        self._vertices_list.extend(list(self._vertices.values()))
 
         combinations = Obstacles._get_combinations(self._vertices)
         for one, two in combinations:
@@ -226,36 +247,60 @@ class Obstacles:
             if self.is_valid_edge(edge):
                 one.add_edge(edge)
                 two.add_edge(edge)
-                self._edges.append(edge)
+                self._edges_list.append(edge)
 
         self._add_polygons_edges()
-        print("Number of edges = " + str(len(self._edges)))
-        self._graph.set(self._edges, list(self._vertices.values()))
+        print("Number of edges = " + str(len(self._edges_list)))
+        self._graph_is_built = True
 
+    def _attach_vertex_to_graph(self, vertex: Vertex):
+        assert self._graph_is_built
+        combs = []
+        for i in range(len(self._vertices_list)):
+            pair = self._vertices_list[i], vertex
+            combs.append(pair)
 
-    def get_edges(self):
-        return self._edges
+        for one, two in combs:
+            edge = Edge(one, two)
+            if self.is_valid_edge(edge):
+                one.add_edge(edge)
+                two.add_edge(edge)
+                self._edges_list.append(edge)
+        self._vertices[vertex.point().x, vertex.point().y] = vertex
 
-    def set_start(self, start):
-        self._source = start
-        self._points_map['start'] = [start]
+    def set_source(self, source: Point):
+        poly = Polygon([source, source, source, source])
+        self._source = Vertex(source, poly)
+        self._attach_vertex_to_graph( self._source)
 
-    def set_destination(self, destination):
-        self._destination = destination
-        self._points_map['destination'] = [destination]
+    def set_destination(self, destination: Point):
+        poly = Polygon([destination, destination, destination, destination])
+        self._destination = Vertex(destination, poly)
+        self._attach_vertex_to_graph(self._destination)
 
-    def set_start_polygon(self, source):
-        self._polygons_map['start'] = source
-        pts = self._coords_2_points(source.exterior.coords)
-        self._points_map['start'] = pts
-
-    def set_destination_polygon(self, destination):
-        self._polygons_map['destination'] = destination
-        pts = self._coords_2_points(destination.exterior.coords)
-        self._points_map['destination'] = pts
+    def add_new_obstacle(self,point1: Point, point2:Point, point3: Point):
+        points = [point1, point2, point3]
+        polygon = Polygon(points)
+        bbox = polygon.bounds
+        padding = 4
+        box_polygon = box(bbox[0] - padding, bbox[1] - padding, bbox[2] + padding, bbox[3] + padding)
+        points_list =  box_polygon.exterior.coords
+        p1, p2, p3, p4 = points_list[0], points_list[1], points_list[2], points_list[3]
+        vertex1 = Vertex(Point(p1[0],p1[1]), box_polygon)
+        vertex2 = Vertex(Point(p2[0],p2[1]), box_polygon)
+        vertex3 = Vertex(Point(p3[0],p3[1]), box_polygon)
+        vertex4 = Vertex(Point(p4[0],p4[1]), box_polygon)
+        self._attach_vertex_to_graph(vertex1)
+        self._attach_vertex_to_graph(vertex2)
+        self._attach_vertex_to_graph(vertex3)
+        self._attach_vertex_to_graph(vertex4)
 
     def get_source_vertex(self):
-        return self._source_vertex
+        return self._source
 
     def get_destination_vertex(self):
-        return self._destination_vertex
+        return self._destination
+
+    def reset_vertices_data_for_search(self):
+        for v in self._vertices_list:
+            v.set_distance(0.0)
