@@ -1,7 +1,7 @@
-import numpy
 import numpy as np
 from typing import Tuple, List, Dict
 import math
+import os
 
 from shapely.geometry import Polygon, Point
 
@@ -26,7 +26,7 @@ class LatticeMap:
 
     def get_local_values(self, x, y):
         i, j = self.coord_to_index(x, y)
-        return self._map[i-1:i+2, j-1:j+2]
+        return self._map[i - 1:i + 2, j - 1:j + 2]
 
     def index_to_coord(self, i, j):
         x = self._min_x + (i + 0.5) * self._unit_size
@@ -43,7 +43,7 @@ class LatticeMap:
 class AttractionMap(LatticeMap):
 
     def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, unit_size: float, type, start: Tuple,
-                 goal: Tuple, d: float, k: float):
+                 goal: Tuple, d: float):
         super(AttractionMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, type)
         self._start = start
         self._goal = goal
@@ -51,7 +51,6 @@ class AttractionMap(LatticeMap):
         self._start_i_j = self.coord_to_index(*start)
         self._goal_i_j = self.coord_to_index(*goal)
         self._d = d
-        self._k = k
         self._min_value = np.float(np.inf)
         self._max_value = np.float(-np.inf)
         self._init_lattice()
@@ -59,10 +58,8 @@ class AttractionMap(LatticeMap):
     def _attraction_value(self, i, j):
         dist = self._dist(self._goal_i_j, (i, j))
         if dist >= self._d:
-            return self._k * dist * self._d - 0.5 * self._k * self._d ** 2
-        if dist > 0.0:
-            return (self._k / 2.0) / dist ** 2
-        return -numpy.float(numpy.inf)
+            return dist * self._d - 0.5 * self._d ** 2
+        return (1 / 2.0) * dist ** 2
 
     def _init_lattice(self):
 
@@ -82,14 +79,14 @@ class AttractionMap(LatticeMap):
 
 
 class RepulsionMap(LatticeMap):
+    _SAVED_MAP_PATH = path = "repulsion_map.npy"
 
     def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, unit_size: float, type,
-                 polygons_dict: Dict, q_star: float, s: float):
+                 polygons_dict: Dict, q_star: float):
         super(RepulsionMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, type)
 
         self._obstacles = polygons_dict
         self._q_star = q_star
-        self._s = s
         self._init_lattice()
 
     def _repulsion_from_obstacle(self, obs: Polygon, i, j):
@@ -103,7 +100,7 @@ class RepulsionMap(LatticeMap):
         if distance > self._q_star:
             return 0.0
 
-        return 0.5 * self._s * (1.0 / distance - 1.0 / self._q_star) ** 2
+        return 0.5 * (1.0 / distance - 1.0 / self._q_star) ** 2
 
     def _repulsion_value(self, i, j):
         total_repulsion = 0.0
@@ -112,9 +109,22 @@ class RepulsionMap(LatticeMap):
         return total_repulsion
 
     def _init_lattice(self):
+        if os.path.isfile(self._calculate_save_path()):
+            self._load_map()
+            return
         for i in range(self._size_x):
             for j in range(self._size_y):
                 self._map[i, j] = self._repulsion_value(i, j)
+        self._save_map()
+
+    def _save_map(self):
+        np.save(self._calculate_save_path(), self._map)
+
+    def _load_map(self):
+        self._map = np.load(self._calculate_save_path())
+
+    def _calculate_save_path(self):
+        return str(self._unit_size) + 'm_' + self._SAVED_MAP_PATH
 
 
 class ObstacleMap(LatticeMap):
