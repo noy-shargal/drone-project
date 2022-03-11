@@ -28,6 +28,8 @@ class Dijkstra:
 
         while not self._Q.empty():
             vertex = self._Q.get()
+            if vertex.is_settled():
+                continue
             vertex.settle()
             self._num_of_vertices_visited += 1
             print(str(vertex.point().xy))

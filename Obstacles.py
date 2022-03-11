@@ -93,6 +93,7 @@ class Obstacles:
         self._vertices_list = list()
         self._source_vertex = None
         self._destination_vertex = None
+        self._destination_point = None
         self._graph_is_built = False
 
     def get_obstacle_points_list(self, id):
@@ -134,8 +135,9 @@ class Obstacles:
 
     def _add_polygon_vertices(self, points_list: List, polygon: Polygon):
 
+        assert self._destination_point
         for p in points_list:
-            vertex = Vertex(p, polygon, None)
+            vertex = Vertex(p, polygon, self._destination_point)
             x, y = p.x, p.y
             key = x, y
             self._vertices[key] = vertex
@@ -153,6 +155,9 @@ class Obstacles:
         polygon = Polygon(points_list)
         self._add_polygon_vertices(points_list, polygon)
         self._polygons_map[poly_id] = polygon
+
+    def set_destination_point(self, dest:Point):
+        self._destination_point = dest
 
     def read_polygons_json(self):
         with open('polygons.json', 'r') as f:
@@ -386,8 +391,8 @@ class Obstacles:
         poly = Polygon([destination, destination, destination, destination])
         self._destination = Vertex(destination, poly)
         self._attach_vertex_to_graph(self._destination)
-        for v in self._vertices_list:
-            v.set_goal(destination)
+        # for v in self._vertices_list:
+        #     v.set_goal(destination)
 
 
     def add_new_obstacle(self, point1: Point, point2: Point, point3: Point):

@@ -116,9 +116,11 @@ if __name__ == "__main__":
 
     read_from_json = True
     obs = Obstacles()
-    new_obs_builder = NewObstaclesBuilder(obs)
+    source = Point(-1250.0, -830.0)
+    destination = Point(0.0, -820.0)
 
     if read_from_json == True:
+        obs.set_destination_point(destination)
         obs.load_from_json()
     else:
         obs.read_csv()
@@ -126,8 +128,7 @@ if __name__ == "__main__":
         obs.save_to_json()
 
     md = MapDrawer()
-    source = Point(-1250.0, -830.0)
-    destination = Point(0.0, -820.0)
+
     obs.set_source(source)
     obs.set_destination(destination)
 
