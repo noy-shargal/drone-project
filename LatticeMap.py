@@ -97,11 +97,11 @@ class RepulsionMap(LatticeMap):
         point = Point(x, y)
         distance = obs.exterior.distance(point)
 
-        if distance > self._q_star:
-            return 0.0
-
         if obs.contains(point) or distance == 0.0:
             return np.float32(np.inf)
+
+        if distance > self._q_star:
+            return 0.0
 
         return 0.5 * self._s * (1.0 / distance - 1.0 / self._q_star) ** 2
 

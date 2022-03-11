@@ -10,7 +10,7 @@ from LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
 
 class PathPlanner:
 
-    def __init__(self, start: Tuple, goal: Tuple, d=30.0, k=1.0, grid_unit_size=10.0, q_star=30.0, s=1000.0):
+    def __init__(self, start: Tuple, goal: Tuple, d=30.0, k=1.0, grid_unit_size=10.0, q_star=30.0, s=100.0):
         self._obstacles_reader = ObstaclesCSVReader()
 
         self._polygons_map = self._obstacles_reader.polygons_map
