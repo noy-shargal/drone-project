@@ -1,5 +1,5 @@
 import csv
-from typing import List
+from typing import List, Dict, Tuple
 
 import Edge
 import Vertex
@@ -9,23 +9,74 @@ from Edge import Edge
 import json
 
 
-class PersistentGraph:
-    def __init__(self):
-        self._vertices = None
-        self._edges = None
-
-    def set(self, edges: List, vertices: List):
-        self._edges = edges
-        self._vertices = list(vertices)
-
-    def get(self):
-        return  self._vertices, self._edges
-
-    def save(self):
-        pass
+class PersistentPolygons:
+    def __init__(self, polygons: Dict):
+        self._polygons = list()
+        for poly_id, polygon in polygons.items():
+            xs, ys = polygon.exterior.coords.xy
+            polygon_list = [poly_id]
+            for i in range(len(xs)):
+                px = xs[i]
+                py = ys[i]
+                polygon_list.append([px, py])
+            self._polygons.append(polygon_list)
 
     def to_json(self):
-        json.dump(self, cls=PersistentGraph)
+        str_json = json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+        with open('polygons.json', 'w') as f:
+            f.write(str_json)
+
+    @staticmethod
+    def from_json():
+        polygons_map = dict()
+        with open('polygons.json', 'r') as f:
+            json_object = json.load(f)
+            poly_list = json_object["_polygons"]
+
+            for poly in poly_list:
+                id = poly[0]
+                points_list = list()
+                for i in range(1, len(poly)):
+                    coords = poly[i]
+                    point = Point(coords)
+                    points_list.append(point)
+                polygon = Polygon(points_list)
+                polygons_map[id] = polygon
+        return polygons_map
+
+    def get(self):
+        return self._polygons
+
+
+class PersistentGraph:
+    def __init__(self):
+        self._edges = list()
+
+    def set(self, edges: List):
+
+        for edge in edges:
+            e = [edge.one.point().x, edge.one.point().y, edge.two.point().x, edge.two.point().y]
+            self._edges.append(e)
+
+        # for vertex in vertices:
+        #     # v = PersistentVertex(vertex.point().x, vertex.point().y)
+        #     v = [vertex.point().x, vertex.point().y]
+        #     self._vertices.append(v)
+
+    def get(self):
+        return self._edges
+
+    def to_json(self):
+        str_json = json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+        with open('obs.json', 'w') as f:
+            f.write(str_json)
+
+    def from_json(self):
+        with open('obs.json', 'r') as f:
+            json_object = json.load(f)
+            self._edges = json_object["_edges"]
+            # self._vertices = json_object["_vertices"]
+            return self._edges
 
 
 
@@ -78,8 +129,70 @@ class Obstacles:
 
         return new_pts
 
+
+#########################Read from JSON METHODS: use 'load_from_json' ###########################
+
+    def _add_polygon_vertices(self, points_list: List, polygon: Polygon):
+
+        for p in points_list:
+            vertex = Vertex(p, polygon, None)
+            x, y = p.x, p.y
+            key = x, y
+            self._vertices[key] = vertex
+            self._vertices_list.append(vertex)
+
+    def _add_polygon(self,poly_record):
+        poly_id = poly_record[0]
+        points_list = list()
+
+        for i in range(1, len(poly_record)):
+            coords = poly_record[i]
+            point = Point(coords)
+            points_list.append(point)
+
+        polygon = Polygon(points_list)
+        self._add_polygon_vertices(points_list, polygon)
+        self._polygons_map[poly_id] = polygon
+
+    def read_polygons_json(self):
+        with open('polygons.json', 'r') as f:
+            json_object = json.load(f)
+            poly_list = json_object["_polygons"]
+            for poly_record in poly_list:
+                self._add_polygon(poly_record)
+
+    def read_edges(self):
+        pp = PersistentGraph()
+        es = pp.from_json()
+        for e in es:
+            key1 = e[0], e[1]
+            v1 = self._vertices[key1]
+            key2 = e[2], e[3]
+            v2 = self._vertices[key2]
+            new_edge = Edge(v1, v2)
+            self._edges_list.append(new_edge)
+            v1.add_edge(new_edge)
+            v2.add_edge(new_edge)
+
+    def load_from_json(self):
+        self.read_polygons_json()
+        self.read_edges()
+        self._graph_is_built = True
+
+    def save_to_json(self):
+        persist_poly = PersistentPolygons(self._polygons_map)
+        persist_poly.to_json()
+        graph = PersistentGraph()
+        graph.set(self._edges_list)
+        graph.to_json()
+
+#######################################################################################################################
+
+
+
     def read_csv(self):
-        with open('compact-obstacles_100m_above_sea_level.csv', newline='') as csvfile:
+        with open('obstacles_100m_above_sea_level.csv', newline='') as csvfile:
+
             reader = csv.reader(csvfile, delimiter=',')
             next(reader, None)  # skip the headers
             for row in reader:
@@ -99,6 +212,9 @@ class Obstacles:
                 self._polygons_map[polygon_id] = box_polygon
 
             self._is_map_inited = True
+
+            poly_json = PersistentPolygons(self._polygons_map)
+            poly_json.to_json()
 
     def is_position_blocked(self, x, y, z):
         key = x, y, z
@@ -139,7 +255,6 @@ class Obstacles:
 
         if polygon.contains(p_near_p1):
             return False
-
         return True
 
     @staticmethod
@@ -166,9 +281,8 @@ class Obstacles:
             if len(ints.coords) > 1:
                 return False
 
-            # if not self._is_edge_tangent(edge): :TODO : enable
-            #     return False
-
+            if not self._is_edge_tangent(edge):
+                return False
         return True
 
     @staticmethod
@@ -232,15 +346,10 @@ class Obstacles:
     def get_vertices(self):
         return self._vertices_list
 
-    def build_visibility_graph(self, graph: PersistentGraph = None):
-        if graph is not None:
-            self._vertices_list , self._edges_list = graph.get()
-            self._graph_is_built = True
-            return
+    def build_visibility_graph(self):
 
         self._build_vertices()
         self._vertices_list.extend(list(self._vertices.values()))
-
         combinations = Obstacles._get_combinations(self._vertices)
         for one, two in combinations:
             edge = Edge(one, two)
@@ -271,25 +380,25 @@ class Obstacles:
     def set_source(self, source: Point):
         poly = Polygon([source, source, source, source])
         self._source = Vertex(source, poly)
-        self._attach_vertex_to_graph( self._source)
+        self._attach_vertex_to_graph(self._source)
 
     def set_destination(self, destination: Point):
         poly = Polygon([destination, destination, destination, destination])
         self._destination = Vertex(destination, poly)
         self._attach_vertex_to_graph(self._destination)
 
-    def add_new_obstacle(self,point1: Point, point2:Point, point3: Point):
+    def add_new_obstacle(self, point1: Point, point2: Point, point3: Point):
         points = [point1, point2, point3]
         polygon = Polygon(points)
         bbox = polygon.bounds
         padding = 4
         box_polygon = box(bbox[0] - padding, bbox[1] - padding, bbox[2] + padding, bbox[3] + padding)
-        points_list =  box_polygon.exterior.coords
+        points_list = box_polygon.exterior.coords
         p1, p2, p3, p4 = points_list[0], points_list[1], points_list[2], points_list[3]
-        vertex1 = Vertex(Point(p1[0],p1[1]), box_polygon)
-        vertex2 = Vertex(Point(p2[0],p2[1]), box_polygon)
-        vertex3 = Vertex(Point(p3[0],p3[1]), box_polygon)
-        vertex4 = Vertex(Point(p4[0],p4[1]), box_polygon)
+        vertex1 = Vertex(Point(p1[0], p1[1]), box_polygon)
+        vertex2 = Vertex(Point(p2[0], p2[1]), box_polygon)
+        vertex3 = Vertex(Point(p3[0], p3[1]), box_polygon)
+        vertex4 = Vertex(Point(p4[0], p4[1]), box_polygon)
         self._attach_vertex_to_graph(vertex1)
         self._attach_vertex_to_graph(vertex2)
         self._attach_vertex_to_graph(vertex3)

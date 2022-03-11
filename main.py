@@ -114,28 +114,22 @@ class NewObstaclesBuilder:
 
 if __name__ == "__main__":
 
+    read_from_json = True
     obs = Obstacles()
     new_obs_builder = NewObstaclesBuilder(obs)
-    obs.read_csv()
 
-    loaded_graph = None
-    # file_to_read = open("graph.pickle", "rb")
-    # loaded_graph = pickle.load(file_to_read)
+    if read_from_json == True:
+        obs.load_from_json()
+    else:
+        obs.read_csv()
+        obs.build_visibility_graph()
+        obs.save_to_json()
 
-    obs.build_visibility_graph(loaded_graph)
     md = MapDrawer()
     source = Point(-1250.0, -830.0)
     destination = Point(0.0, -600.0)
     obs.set_source(source)
     obs.set_destination(destination)
-
-    ########################################################################################
-    graph = PersistentGraph()
-    # graph.set(obs.get_edges(), obs.get_vertices())
-    # file_to_store = open("full_graph.pickle", "wb")
-    # pickle.dump(graph, file_to_store)
-    # file_to_store.close()
-    ########################################################################################
 
     md.set_source(source)
     md.set_destination(destination)
