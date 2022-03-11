@@ -10,12 +10,13 @@ from LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
 
 class PathPlanner:
 
-    def __init__(self, start: Tuple, goal: Tuple, d=30.0, k=0.02, grid_unit_size=7.5, q_star=60.0, s=15.0):
+    def __init__(self, start: Tuple, goal: Tuple, d=30.0, k=0.5, grid_unit_size=5.0, q_star=120.0, s=10.0):
         self._obstacles_reader = ObstaclesCSVReader()
 
         self._polygons_map = self._obstacles_reader.polygons_map
         self._goal = goal
         self._start = start
+        self._grid_unit_size = grid_unit_size
         min_x, max_x, min_y, max_y = self._obstacles_reader.get_boundaries()
 
         self._obstacles_map = ObstacleMap(self._polygons_map, min_x, max_x, min_y, max_y, grid_unit_size, numpy.int8)
@@ -49,7 +50,7 @@ class PathPlanner:
     def _get_local_potential_map(self, position: Tuple):
         local_attraction_map_value = self._attraction_map.get_local_values(*position)
         local_repulsion_map_value = self._repulsion_map.get_local_values(*position)
-        return self._k*local_attraction_map_value + self._s*local_repulsion_map_value
+        return self._k * local_attraction_map_value + self._s * local_repulsion_map_value
 
     def make_path(self):
         pass
@@ -79,12 +80,18 @@ class PathPlanner:
 
         return next_position
 
-    def reached_goal(self, curr_position: Tuple):
-        diff_x = self._goal[0] - curr_position[0]
-        diff_y = self._goal[1] - curr_position[1]
+    def reached_location(self, curr_position: Tuple, target_position: Tuple):
+        diff_x = target_position[0] - curr_position[0]
+        diff_y = target_position[1] - curr_position[1]
         dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
-        return dist < 11.0
+        return dist < self._grid_unit_size
+
+    def reached_goal(self, curr_position: Tuple):
+        self.reached_location(curr_position, self._goal)
 
     @property
     def polygons_map(self):
         return deepcopy(self._polygons_map)
+
+    def update_obstacle(self, obstacle_position):
+        self._obstacles_map.update_map(*obstacle_position, 1)

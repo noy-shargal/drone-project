@@ -36,8 +36,11 @@ class LatticeMap:
     def coord_to_index(self, x: float, y: float):
         return int((x - self._min_x) / self._unit_size), int((y - self._min_y) / self._unit_size)
 
-    def _dist(self, cell1: Tuple, cell2: Tuple):
+    def _l1_dist(self, cell1: Tuple, cell2: Tuple):
         return math.fabs(cell1[0] - cell2[0]) + math.fabs(cell1[1] - cell2[1])
+
+    def _dist(self, cell1: Tuple, cell2: Tuple):
+        return math.sqrt((cell1[0] - cell2[0]) ** 2 + (cell1[1] - cell2[1]) ** 2)
 
 
 class AttractionMap(LatticeMap):
@@ -124,7 +127,7 @@ class RepulsionMap(LatticeMap):
         self._map = np.load(self._calculate_save_path())
 
     def _calculate_save_path(self):
-        return str(self._unit_size) + 'm_' + self._SAVED_MAP_PATH
+        return 'unit_size=' + str(self._unit_size) + 'q_star=' + str(self._q_star) + self._SAVED_MAP_PATH
 
 
 class ObstacleMap(LatticeMap):
@@ -144,3 +147,7 @@ class ObstacleMap(LatticeMap):
         for i in range(self._size_x):
             for j in range(self._size_y):
                 self._map[i, j] = self._obstacle_value(i, j)
+
+    def update_map(self, x, y, value):
+        i, j = self.coord_to_index(x, y)
+        self._map[i, j] = value
