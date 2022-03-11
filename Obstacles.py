@@ -386,6 +386,9 @@ class Obstacles:
         poly = Polygon([destination, destination, destination, destination])
         self._destination = Vertex(destination, poly)
         self._attach_vertex_to_graph(self._destination)
+        for v in self._vertices_list:
+            v.set_goal(destination)
+
 
     def add_new_obstacle(self, point1: Point, point2: Point, point3: Point):
         points = [point1, point2, point3]

@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
     md = MapDrawer()
     source = Point(-1250.0, -830.0)
-    destination = Point(0.0, -600.0)
+    destination = Point(0.0, -820.0)
     obs.set_source(source)
     obs.set_destination(destination)
 

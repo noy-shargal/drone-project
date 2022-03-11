@@ -17,16 +17,25 @@ class Dijkstra:
             curr_vertex = curr_vertex.get_prev_vertex()
 
     def search(self, source: Vertex, destination: Vertex):
+        self._num_of_vertices_visited = 0
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S.%f")
         print("Dijkstra start Time =", current_time)
         source.set_distance(0)
         self._Q.put(source)
 
+        vertices_dict = dict()
+
         while not self._Q.empty():
             vertex = self._Q.get()
             vertex.settle()
             self._num_of_vertices_visited += 1
+            print(str(vertex.point().xy))
+            if str(vertex.point().xy)  in vertices_dict.keys():
+                vertices_dict[str(vertex.point().xy)] +=1
+            else:
+                vertices_dict[str(vertex.point().xy)] = 1
+
             if vertex == destination:
                 break
             edges = vertex.get_edges()
