@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 from typing import List, Dict, Tuple
 
 import Edge
@@ -53,7 +54,6 @@ class PersistentGraph:
         self._edges = list()
 
     def set(self, edges: List):
-
         for edge in edges:
             e = [edge.one.point().x, edge.one.point().y, edge.two.point().x, edge.two.point().y]
             self._edges.append(e)
@@ -77,7 +77,6 @@ class PersistentGraph:
             self._edges = json_object["_edges"]
             # self._vertices = json_object["_vertices"]
             return self._edges
-
 
 
 class Obstacles:
@@ -130,8 +129,7 @@ class Obstacles:
 
         return new_pts
 
-
-#########################Read from JSON METHODS: use 'load_from_json' ###########################
+    #########################Read from JSON METHODS: use 'load_from_json' ###########################
 
     def _add_polygon_vertices(self, points_list: List, polygon: Polygon):
 
@@ -143,7 +141,7 @@ class Obstacles:
             self._vertices[key] = vertex
             self._vertices_list.append(vertex)
 
-    def _add_polygon(self,poly_record):
+    def _add_polygon(self, poly_record):
         poly_id = poly_record[0]
         points_list = list()
 
@@ -156,7 +154,7 @@ class Obstacles:
         self._add_polygon_vertices(points_list, polygon)
         self._polygons_map[poly_id] = polygon
 
-    def set_destination_point(self, dest:Point):
+    def set_destination_point(self, dest: Point):
         self._destination_point = dest
 
     def read_polygons_json(self):
@@ -191,9 +189,7 @@ class Obstacles:
         graph.set(self._edges_list)
         graph.to_json()
 
-#######################################################################################################################
-
-
+    #######################################################################################################################
 
     def read_csv(self):
         with open('obstacles_100m_above_sea_level.csv', newline='') as csvfile:
@@ -275,10 +271,13 @@ class Obstacles:
         return True
 
     def is_valid_edge(self, edge: Edge):
+
+
+        if not self._is_edge_tangent(edge):
+            return False
+
         p1 = edge.one.point()
         p2 = edge.two.point()
-        if type(p1) != Point:
-            print("type mismatch")
         line = LineString([p1, p2])
 
         for poly in self._polygons_map.values():
@@ -286,9 +285,22 @@ class Obstacles:
             if len(ints.coords) > 1:
                 return False
 
-            if not self._is_edge_tangent(edge):
-                return False
         return True
+
+    def is_valid_edge_lite(self, edge: Edge):
+
+        p1 = edge.one.point()
+        p2 = edge.two.point()
+        line = LineString([p1, p2])
+
+        for poly in self._polygons_map.values():
+            ints = line.intersection(poly)
+            if len(ints.coords) > 1:
+                return False
+
+        return True
+
+
 
     @staticmethod
     def _get_combinations(vertices):
@@ -369,18 +381,29 @@ class Obstacles:
 
     def _attach_vertex_to_graph(self, vertex: Vertex):
         assert self._graph_is_built
-        combs = []
+        t1 = datetime.now()
+        # combs = []
         for i in range(len(self._vertices_list)):
-            pair = self._vertices_list[i], vertex
-            combs.append(pair)
-
-        for one, two in combs:
-            edge = Edge(one, two)
-            if self.is_valid_edge(edge):
-                one.add_edge(edge)
-                two.add_edge(edge)
+            # pair = self._vertices_list[i], vertex
+            edge = Edge(self._vertices_list[i], vertex)
+            if self.is_valid_edge_lite(edge):
+                self._vertices_list[i].add_edge(edge)
+                vertex.add_edge(edge)
                 self._edges_list.append(edge)
+        #            combs.append(pair)
+
+        # for one, two in combs:
+        #     edge = Edge(one, two)
+        #     if self.is_valid_edge(edge):
+        #         one.add_edge(edge)
+        #         two.add_edge(edge)
+        #         self._edges_list.append(edge)
         self._vertices[vertex.point().x, vertex.point().y] = vertex
+        self._vertices_list.append(vertex)
+
+        t2 = datetime.now()
+        print("_attach_vertex_to_graph: " + str(t2 - t1))
+        print(type(t1 - t2))
 
     def set_source(self, source: Point):
         poly = Polygon([source, source, source, source])
@@ -391,9 +414,6 @@ class Obstacles:
         poly = Polygon([destination, destination, destination, destination])
         self._destination = Vertex(destination, poly)
         self._attach_vertex_to_graph(self._destination)
-        # for v in self._vertices_list:
-        #     v.set_goal(destination)
-
 
     def add_new_obstacle(self, point1: Point, point2: Point, point3: Point):
         points = [point1, point2, point3]
@@ -408,9 +428,13 @@ class Obstacles:
         vertex3 = Vertex(Point(p3[0], p3[1]), box_polygon)
         vertex4 = Vertex(Point(p4[0], p4[1]), box_polygon)
         self._attach_vertex_to_graph(vertex1)
+        vertex1.set_h(10000)
         self._attach_vertex_to_graph(vertex2)
+        vertex2.set_h(10000)
         self._attach_vertex_to_graph(vertex3)
+        vertex3.set_h(10000)
         self._attach_vertex_to_graph(vertex4)
+        vertex4.set_h(10000)
 
     def get_source_vertex(self):
         return self._source
@@ -421,3 +445,4 @@ class Obstacles:
     def reset_vertices_data_for_search(self):
         for v in self._vertices_list:
             v.set_distance(0.0)
+

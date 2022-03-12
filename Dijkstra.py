@@ -32,11 +32,11 @@ class Dijkstra:
                 continue
             vertex.settle()
             self._num_of_vertices_visited += 1
-            print(str(vertex.point().xy))
-            if str(vertex.point().xy)  in vertices_dict.keys():
-                vertices_dict[str(vertex.point().xy)] +=1
-            else:
-                vertices_dict[str(vertex.point().xy)] = 1
+            # print(str(vertex.point().xy))
+            # if str(vertex.point().xy)  in vertices_dict.keys():
+            #     vertices_dict[str(vertex.point().xy)] +=1
+            # else:
+            #     vertices_dict[str(vertex.point().xy)] = 1
 
             if vertex == destination:
                 break
