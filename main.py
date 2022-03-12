@@ -1,4 +1,3 @@
-import math
 import time
 from shapely.geometry import Polygon
 from DroneClient import DroneClient
@@ -82,18 +81,5 @@ if __name__ == "__main__":
         print(next_position)
         client.flyToPosition(next_position[0], next_position[1], -100, 5)
         while not path_planner.reached_location(curr_position, next_position):
-            # time.sleep(0.5)
             curr_position = client.getPose().pos.x_m, client.getPose().pos.y_m
         curr_position = next_position
-        # while not path_planner.reached_location(curr_position, next_position):
-        #     client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, 5)
-        # if curr_position == next_position:
-        #     print("Curr position: " + str(curr_position))
-        #     map_drawer.set_path(path)
-        #     map_drawer.show()
-        #     break
-
-        # path.append(curr_position)
-    #
-    # map_drawer.set_path(path)
-    # map_drawer.show()

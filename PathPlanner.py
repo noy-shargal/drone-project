@@ -1,8 +1,7 @@
 import math
-from typing import Tuple
+from typing import Tuple, List
 from copy import deepcopy
 import numpy
-import numpy as np
 
 from ObstaclesCSVReader import ObstaclesCSVReader
 from LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
@@ -10,7 +9,7 @@ from LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
 
 class PathPlanner:
 
-    def __init__(self, start: Tuple, goal: Tuple, d=30.0, k=0.5, grid_unit_size=5.0, q_star=120.0, s=10.0):
+    def __init__(self, start: Tuple, goal: Tuple, d=30.0, k=0.5, grid_unit_size=5.0, q_star=120.0, s=25.0):
         self._obstacles_reader = ObstaclesCSVReader()
 
         self._polygons_map = self._obstacles_reader.polygons_map
@@ -27,6 +26,7 @@ class PathPlanner:
 
         self._k = k
         self._s = s
+        self._q_star = q_star
 
     @property
     def s(self):
@@ -93,5 +93,14 @@ class PathPlanner:
     def polygons_map(self):
         return deepcopy(self._polygons_map)
 
-    def update_obstacle(self, obstacle_position):
+    def _update_obstacle(self, obstacle_position):
         self._obstacles_map.update_map(*obstacle_position, 1)
+
+    def process_lidar_data(self, lidar_sample):
+        if self._obstacles_map.new_obstacle(*lidar_sample):
+            print(f"new obstacle", lidar_sample)
+            self._update_obstacle(lidar_sample)
+            self._update_repulsion(lidar_sample)
+
+    def _update_repulsion(self, lidar_sample):
+        self._repulsion_map.update_map(*lidar_sample)

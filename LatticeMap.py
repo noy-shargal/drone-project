@@ -129,6 +129,11 @@ class RepulsionMap(LatticeMap):
     def _calculate_save_path(self):
         return 'unit_size=' + str(self._unit_size) + 'q_star=' + str(self._q_star) + self._SAVED_MAP_PATH
 
+    def update_map(self, x, y):
+        i, j = self.coord_to_index(x, y)
+        new_vals = np.ones((3, 3)) * np.inf
+        self._map[i-1:i+2, j-1:j+2] = new_vals
+
 
 class ObstacleMap(LatticeMap):
 
@@ -151,3 +156,7 @@ class ObstacleMap(LatticeMap):
     def update_map(self, x, y, value):
         i, j = self.coord_to_index(x, y)
         self._map[i, j] = value
+
+    def new_obstacle(self, x, y):
+        i, j = self.coord_to_index(x, y)
+        return not self._map[i, j]
