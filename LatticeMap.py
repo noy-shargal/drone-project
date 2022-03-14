@@ -105,6 +105,15 @@ class RepulsionMap(LatticeMap):
 
         return 0.5 * (1.0 / distance - 1.0 / self._q_star) ** 2
 
+    def repulsion_by_distance(self, distance):
+        if distance == 0.0:
+            return np.float32(np.inf)
+
+        if distance > self._q_star:
+            return 0.0
+
+        return 0.5 * (1.0 / distance - 1.0 / self._q_star) ** 2
+
     def _repulsion_value(self, i, j):
         total_repulsion = 0.0
         for obs in self._obstacles.values():

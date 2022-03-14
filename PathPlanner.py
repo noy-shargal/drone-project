@@ -1,5 +1,5 @@
 import math
-from typing import Tuple, List
+from typing import Tuple, Set
 from copy import deepcopy
 import numpy
 
@@ -70,8 +70,9 @@ class PathPlanner:
                     min_j = j
         return min_i, min_j
 
-    def next_step(self, curr_position: Tuple):
+    def next_step(self, curr_position: Tuple, lidar_points=set()):
         potential_map = self._get_local_potential_map(curr_position)
+        potential_map += self._calculate_unknown_environment_potential(curr_position, lidar_points)
         step_indices = self._argmin_2D_array(potential_map)
 
         curr_index = self._attraction_map.coord_to_index(*curr_position)
@@ -104,3 +105,25 @@ class PathPlanner:
 
     def _update_repulsion(self, lidar_sample):
         self._repulsion_map.update_map(*lidar_sample)
+
+    def new_obstacle(self, lidar_sample):
+        return self._obstacles_map.new_obstacle(*lidar_sample)
+
+    def _calculate_unknown_environment_potential(self, curr_position, lidar_points: Set):
+        unknown_environment_potential = numpy.zeros((3, 3))
+        for i in range(3):
+            for j in range(3):
+                world_i, world_j = self._attraction_map.coord_to_index(*curr_position)
+                x, y = self._attraction_map.index_to_coord(i+world_i-1, j+world_j-1)
+                distance = self._calculate_distance(x, y, lidar_points)
+                unknown_environment_potential[i, j] = self._repulsion_map.repulsion_by_distance(distance)
+        return unknown_environment_potential
+
+    @staticmethod
+    def _calculate_distance(x, y, lidar_points):
+        min_distance = numpy.inf
+        for lidar_point in lidar_points:
+            distance = math.sqrt((x-lidar_point[0])**2 + (y-lidar_point[1])**2)
+            if distance < min_distance:
+                min_distance = distance
+        return min_distance
