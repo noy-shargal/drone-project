@@ -4,21 +4,23 @@ import math
 import os
 
 from shapely.geometry import Polygon, Point
+from config import current_config
 
 
 class LatticeMap:
 
-    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, unit_size: float, type):
+    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, data_type = current_config.data_type):
         self._min_x = min_x
         self._max_x = max_x
         self._min_y = min_y
         self._max_y = max_y
-        self._unit_size = unit_size
+        self._unit_size = current_config.grid_size
 
-        self._size_x = int((max_x - min_x) / unit_size)
-        self._size_y = int((max_y - min_y) / unit_size)
+        self._size_x = int((max_x - min_x) / current_config.grid_size)
+        self._size_y = int((max_y - min_y) / current_config.grid_size)
+        self._data_type = data_type
 
-        self._map = np.ndarray((self._size_x, self._size_y), dtype=type)
+        self._map = np.ndarray((self._size_x, self._size_y), dtype=data_type)
 
     def value(self, x: float, y: float):
         i, j = self.coord_to_index(x, y)
@@ -45,15 +47,14 @@ class LatticeMap:
 
 class AttractionMap(LatticeMap):
 
-    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, unit_size: float, type, start: Tuple,
-                 goal: Tuple, d: float):
-        super(AttractionMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, type)
-        self._start = start
-        self._goal = goal
+    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float):
+        super(AttractionMap, self).__init__(min_x, max_x, min_y, max_y)
+        self._start = current_config.start_position
+        self._goal = current_config.end_position
 
-        self._start_i_j = self.coord_to_index(*start)
-        self._goal_i_j = self.coord_to_index(*goal)
-        self._d = d
+        self._start_i_j = self.coord_to_index(*self._start)
+        self._goal_i_j = self.coord_to_index(*self._goal)
+        self._d = current_config.d
         self._min_value = np.float(np.inf)
         self._max_value = np.float(-np.inf)
         self._init_lattice()
@@ -82,14 +83,13 @@ class AttractionMap(LatticeMap):
 
 
 class RepulsionMap(LatticeMap):
-    _SAVED_MAP_PATH = path = "repulsion_map.npy"
+    _SAVED_MAP_PATH = "repulsion_map.npy"
 
-    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, unit_size: float, type,
-                 polygons_dict: Dict, q_star: float):
-        super(RepulsionMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, type)
+    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, polygons_dict: Dict):
+        super(RepulsionMap, self).__init__(min_x, max_x, min_y, max_y)
 
         self._obstacles = polygons_dict
-        self._q_star = q_star
+        self._q_star = current_config.q_star
         self._init_lattice()
 
     def _repulsion_from_obstacle(self, obs: Polygon, i, j):
@@ -121,6 +121,9 @@ class RepulsionMap(LatticeMap):
         return total_repulsion
 
     def _init_lattice(self):
+        if not current_config.use_obstacles_map:
+            self._map = np.zeros((self._size_x, self._size_y), dtype=self._data_type)
+            return
         if os.path.isfile(self._calculate_save_path()):
             self._load_map()
             return
@@ -145,19 +148,26 @@ class RepulsionMap(LatticeMap):
 
 
 class ObstacleMap(LatticeMap):
+    _SAVED_MAP_PATH = "obstacles_map.npy"
 
-    def __init__(self, obstacles_dict, min_x, max_x, min_y, max_y, unit_size, dtype):
+    def __init__(self, obstacles_dict, min_x, max_x, min_y, max_y, data_type=np.int8):
 
-        super(ObstacleMap, self).__init__(min_x, max_x, min_y, max_y, unit_size, dtype)
+        super(ObstacleMap, self).__init__(min_x, max_x, min_y, max_y, data_type)
         self._obstacles = obstacles_dict
         self._init_map()
 
     def _obstacle_value(self, i, j):
         x, y = self.index_to_coord(i, j)
         p = Point(x, y)
-        return any([obs.contains(p) for obs in self._obstacles.values()])
+        return any([obs.contains(p) or obs.exterior.distance(p) < self._unit_size for obs in self._obstacles.values()])
 
     def _init_map(self):
+        if not current_config.use_obstacles_map:
+            self._map = np.zeros((self._size_x, self._size_y), dtype=self._data_type)
+            return
+        if os.path.isfile(self._calculate_save_path()):
+            self._load_map()
+            return
         for i in range(self._size_x):
             for j in range(self._size_y):
                 self._map[i, j] = self._obstacle_value(i, j)
@@ -169,3 +179,10 @@ class ObstacleMap(LatticeMap):
     def new_obstacle(self, x, y):
         i, j = self.coord_to_index(x, y)
         return not self._map[i, j]
+
+    def _calculate_save_path(self):
+        return 'unit_size=' + str(self._unit_size) + self._SAVED_MAP_PATH
+
+    def _load_map(self):
+        self._map = np.load(self._calculate_save_path())
+

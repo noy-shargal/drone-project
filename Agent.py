@@ -3,22 +3,25 @@ from MyDroneClient import MyDroneClient
 from Countdowner import Countdowner
 from typing import Tuple
 import time
+from config import current_config
 
 
 class Agent:
-    HEIGHT = -50
+    HEIGHT = -30
     VELOCITY = 6
 
-    def __init__(self, start: Tuple, goal: Tuple):
-        self._path_planner = PathPlanner(start, goal)
+    def __init__(self):
+        self._path_planner = PathPlanner()
         self._drone_client = MyDroneClient()
-        self._start = start
+        self._start = current_config.start_position
+        self._height = current_config.height
+        self._velocity = current_config.velocity
         self._lidar_points = set()
 
     def connect_and_spawn(self):
         self._drone_client.connect()
         time.sleep(2)
-        self._drone_client.setAtPosition(*self._start, self.HEIGHT)
+        self._drone_client.setAtPosition(*self._start, self._height)
         time.sleep(2)
 
     def fly_to_destination(self):
@@ -26,7 +29,8 @@ class Agent:
         while not self._path_planner.reached_goal(curr_position):
             next_position = self._path_planner.next_step(curr_position, self._lidar_points)
             self._clear_lidar_points()
-            self._drone_client.flyToPosition(next_position[0], next_position[1], self.HEIGHT, self.VELOCITY)
+            self._drone_client.flyToPosition(next_position[0], next_position[1], self._height, self._velocity)
+            self._collect_lidar_points()
             while not self._path_planner.reached_location(curr_position, next_position):
                 curr_position = self._drone_client.getPose().pos.x_m, self._drone_client.getPose().pos.y_m
                 self._collect_lidar_points()
@@ -47,15 +51,3 @@ class Agent:
 
     def _clear_lidar_points(self):
         self._lidar_points = set()
-
-
-def main(start: Tuple, goal: Tuple):
-    agent = Agent(start, goal)
-    agent.connect_and_spawn()
-    agent.fly_to_destination()
-
-
-if __name__ == '__main__':
-    current_start = (-1200.0, -1200.0)
-    current_end = (0.0, -600.0)
-    main(current_start, current_end)

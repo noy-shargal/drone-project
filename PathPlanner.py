@@ -5,28 +5,28 @@ import numpy
 
 from ObstaclesCSVReader import ObstaclesCSVReader
 from LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
+from config import current_config
 
 
 class PathPlanner:
 
-    def __init__(self, start: Tuple, goal: Tuple, d=30.0, k=0.5, grid_unit_size=5.0, q_star=120.0, s=25.0):
+    def __init__(self):
         self._obstacles_reader = ObstaclesCSVReader()
 
         self._polygons_map = self._obstacles_reader.polygons_map
-        self._goal = goal
-        self._start = start
-        self._grid_unit_size = grid_unit_size
+        self._goal = current_config.end_position
+        self._start = current_config.start_position
+        self._grid_unit_size = current_config.grid_size
         min_x, max_x, min_y, max_y = self._obstacles_reader.get_boundaries()
 
-        self._obstacles_map = ObstacleMap(self._polygons_map, min_x, max_x, min_y, max_y, grid_unit_size, numpy.int8)
-        self._repulsion_map = RepulsionMap(min_x, max_x, min_y, max_y, grid_unit_size, numpy.float32,
-                                           self._polygons_map, q_star)
-        self._attraction_map = AttractionMap(min_x, max_x, min_y, max_y, grid_unit_size, numpy.float32, start,
-                                             goal, d)
+        self._obstacles_map = ObstacleMap(self._polygons_map, min_x, max_x, min_y, max_y)
+        self._repulsion_map = RepulsionMap(min_x, max_x, min_y, max_y, self._polygons_map)
+        self._attraction_map = AttractionMap(min_x, max_x, min_y, max_y)
 
-        self._k = k
-        self._s = s
-        self._q_star = q_star
+        self._k = current_config.k
+        self._s = current_config.s
+        self._q_star = current_config.q_star
+        self._unknown_amplification = current_config.unknown_amplification
 
     @property
     def s(self):
@@ -72,7 +72,7 @@ class PathPlanner:
 
     def next_step(self, curr_position: Tuple, lidar_points=set()):
         potential_map = self._get_local_potential_map(curr_position)
-        potential_map += self._calculate_unknown_environment_potential(curr_position, lidar_points)
+        potential_map += self._unknown_amplification*self._calculate_unknown_environment_potential(curr_position, lidar_points)
         step_indices = self._argmin_2D_array(potential_map)
 
         curr_index = self._attraction_map.coord_to_index(*curr_position)
@@ -85,7 +85,7 @@ class PathPlanner:
         diff_x = target_position[0] - curr_position[0]
         diff_y = target_position[1] - curr_position[1]
         dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
-        return dist < self._grid_unit_size
+        return dist < current_config.reach_dist
 
     def reached_goal(self, curr_position: Tuple):
         self.reached_location(curr_position, self._goal)
