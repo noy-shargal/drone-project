@@ -7,8 +7,6 @@ from config import current_config
 
 
 class Agent:
-    HEIGHT = -30
-    VELOCITY = 6
 
     def __init__(self):
         self._path_planner = PathPlanner()
@@ -16,6 +14,8 @@ class Agent:
         self._start = current_config.start_position
         self._height = current_config.height
         self._velocity = current_config.velocity
+        self._lidar_points_counter = Countdowner(5.0)
+        self._lidar_points_counter.start()
         self._lidar_points = set()
 
     def connect_and_spawn(self):
@@ -37,7 +37,7 @@ class Agent:
             curr_position = next_position
 
     def _collect_lidar_points(self):
-        countdowner = Countdowner(0.1)
+        countdowner = Countdowner(1.0)
         countdowner.start()
         while countdowner.running():
             sensed_obstacle, lidar_data, pose = self._drone_client.senseObstacle()
@@ -46,8 +46,12 @@ class Agent:
                 for lidar_sample in parsed_lidar_data:
                     x, y = self._drone_client.getPointInRealWorldCoords(*lidar_sample, pose)
                     if self._path_planner.new_obstacle((x, y)):
-                        print((round(x, 2), round(y, 2)))
-                        self._lidar_points.add((round(x, 2), round(y, 2)))
+                        point = (round(x, 2), round(y, 2))
+                        if not point in self._lidar_points:
+                            print(point)
+                            self._lidar_points.add(point)
 
     def _clear_lidar_points(self):
-        self._lidar_points = set()
+        if not self._lidar_points_counter.running():
+            self._lidar_points = set()
+            self._lidar_points_counter.start()

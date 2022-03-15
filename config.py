@@ -15,7 +15,8 @@ class InfiniteRepulsionConfig:
                  data_type,
                  unknown_amplification,
                  use_obstacles_map,
-                 reach_dist):
+                 reach_dist,
+                 window_size):
         self.q_star = q_star
         self.s = s
         self.k = k
@@ -29,6 +30,7 @@ class InfiniteRepulsionConfig:
         self.unknown_amplification = unknown_amplification
         self.use_obstacles_map = use_obstacles_map
         self.reach_dist = reach_dist
+        self.window_size = window_size
 
 
 class FiniteRepulsionConfig:
@@ -46,6 +48,7 @@ class FiniteRepulsionConfig:
                  unknown_amplification,
                  use_obstacles_map,
                  reach_dist,
+                 window_size,
                  eta):
         self.q_star = q_star
         self.s = s
@@ -61,6 +64,8 @@ class FiniteRepulsionConfig:
         self.unknown_amplification = unknown_amplification
         self.use_obstacles_map = use_obstacles_map
         self.reach_dist = reach_dist
+        self.window_size = window_size
+
 
 
 finite_repulsion_config1 = FiniteRepulsionConfig(start_position=(-1200.0, -1200.0),
@@ -68,13 +73,14 @@ finite_repulsion_config1 = FiniteRepulsionConfig(start_position=(-1200.0, -1200.
                                                  height=-30,
                                                  q_star=50,
                                                  s=25,
-                                                 k=0.025,
+                                                 k=0.25,
                                                  d=30.0,
                                                  grid_size=1.0,
-                                                 velocity=6.0,
+                                                 velocity=3.0,
                                                  data_type=np.float32,
                                                  unknown_amplification=5000,
                                                  use_obstacles_map=False,
                                                  reach_dist=2.5,
+                                                 window_size=3,
                                                  eta=2)
 current_config = finite_repulsion_config1
