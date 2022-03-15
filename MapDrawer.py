@@ -68,5 +68,5 @@ class MapDrawer:
 
     @staticmethod
     def show():
-        plt.show()
+        plt.show(block= False)
 

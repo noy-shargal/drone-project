@@ -382,22 +382,12 @@ class Obstacles:
     def _attach_vertex_to_graph(self, vertex: Vertex):
         assert self._graph_is_built
         t1 = datetime.now()
-        # combs = []
         for i in range(len(self._vertices_list)):
-            # pair = self._vertices_list[i], vertex
             edge = Edge(self._vertices_list[i], vertex)
             if self.is_valid_edge_lite(edge):
                 self._vertices_list[i].add_edge(edge)
                 vertex.add_edge(edge)
                 self._edges_list.append(edge)
-        #            combs.append(pair)
-
-        # for one, two in combs:
-        #     edge = Edge(one, two)
-        #     if self.is_valid_edge(edge):
-        #         one.add_edge(edge)
-        #         two.add_edge(edge)
-        #         self._edges_list.append(edge)
         self._vertices[vertex.point().x, vertex.point().y] = vertex
         self._vertices_list.append(vertex)
 
