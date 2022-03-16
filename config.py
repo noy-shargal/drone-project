@@ -74,12 +74,12 @@ finite_repulsion_config1 = FiniteRepulsionConfig(start_position=(-1200.0, -1200.
                                                  s=25,
                                                  k=0.025,
                                                  d=30.0,
-                                                 grid_size=0.5,
+                                                 grid_size=0.8,
                                                  velocity=3.0,
                                                  data_type=np.float32,
-                                                 unknown_amplification=25,
+                                                 unknown_amplification=33,
                                                  use_obstacles_map=False,
                                                  reach_dist=3.5,
-                                                 window_size=13,
-                                                 eta=4)
+                                                 window_size=20,
+                                                 eta=5)
 current_config = finite_repulsion_config1
