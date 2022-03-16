@@ -19,6 +19,8 @@ class Agent:
         self._lidar_points_counter = Countdowner(5.0)
         self._lidar_points = list()
 
+        # Tangent Bug Staff
+
     def connect_and_spawn(self):
         self._drone_client.connect()
         time.sleep(2)
