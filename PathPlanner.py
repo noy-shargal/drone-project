@@ -50,7 +50,14 @@ class PathPlanner:
     def _get_local_potential_map(self, position: Tuple):
         local_attraction_map_value = self._attraction_map.get_local_values(*position)
         local_repulsion_map_value = self._repulsion_map.get_local_values(*position)
-        return self._k * local_attraction_map_value + self._s * local_repulsion_map_value
+        return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
+
+    @staticmethod
+    def weighted_average_of_dicts(dict1, weight1, dict2, weight2):
+        output = dict()
+        for position in dict1.keys():
+            output[position] = weight1 * dict1[position] + weight2 * dict2[position]
+        return output
 
     def make_path(self):
         pass
@@ -71,13 +78,16 @@ class PathPlanner:
         return min_i, min_j
 
     def next_step(self, curr_position: Tuple, lidar_points=set()):
+        distance_to_nearest_obstacle = self._calculate_distance(curr_position[0], curr_position[1], lidar_points)
+        current_config.window_size = self._compute_window_size(distance_to_nearest_obstacle)
         potential_map = self._get_local_potential_map(curr_position)
-        potential_map += self._unknown_amplification*self._calculate_unknown_environment_potential(curr_position, lidar_points)
-        step_indices = self._argmin_2D_array(potential_map)
+        unknown_potential_map = self._calculate_unknown_environment_potential(curr_position, lidar_points)
+        total_potential = self.weighted_average_of_dicts(potential_map, 1, unknown_potential_map,
+                                                         self._unknown_amplification)
 
-        curr_index = self._attraction_map.coord_to_index(*curr_position)
-        next_indices = (curr_index[0] + step_indices[0] - 1, curr_index[1] + step_indices[1] - 1)
-        next_position = self._attraction_map.index_to_coord(*next_indices)
+        step_indices = min(total_potential, key=total_potential.get)
+
+        next_position = self._attraction_map.index_to_coord(*step_indices)
 
         return next_position
 
@@ -110,20 +120,50 @@ class PathPlanner:
         return self._obstacles_map.new_obstacle(*lidar_sample)
 
     def _calculate_unknown_environment_potential(self, curr_position, lidar_points: Set):
-        unknown_environment_potential = numpy.zeros((3, 3))
-        for i in range(3):
-            for j in range(3):
-                world_i, world_j = self._attraction_map.coord_to_index(*curr_position)
-                x, y = self._attraction_map.index_to_coord(i+world_i-1, j+world_j-1)
-                distance = self._calculate_distance(x, y, lidar_points)
-                unknown_environment_potential[i, j] = self._repulsion_map.repulsion_by_distance(distance)
-        return unknown_environment_potential
+        output = dict()
+        world_i, world_j = self._attraction_map.coord_to_index(*curr_position)
+        window_size = current_config.window_size
+
+        # Top
+        for x_iterator in range(-(window_size - 1) // 2, window_size // 2 + 1, 1):
+            position = (world_i + x_iterator, world_j - window_size // 2)
+            x, y = self._attraction_map.index_to_coord(position[0], position[1])
+            distance = self._calculate_distance(x, y, lidar_points)
+            output[position] = self._repulsion_map.repulsion_by_distance(distance)
+        # Bottom
+        for x_iterator in range(-(window_size - 1) // 2, window_size // 2 + 1, 1):
+            position = (world_i + x_iterator, world_j + window_size // 2)
+            x, y = self._attraction_map.index_to_coord(position[0], position[1])
+            distance = self._calculate_distance(x, y, lidar_points)
+            output[position] = self._repulsion_map.repulsion_by_distance(distance)
+        # Left
+        for y_iterator in range(-(window_size - 1) // 2 + 1, window_size // 2, 1):
+            position = (world_i - window_size // 2, world_j + y_iterator)
+            x, y = self._attraction_map.index_to_coord(position[0], position[1])
+            distance = self._calculate_distance(x, y, lidar_points)
+            output[position] = self._repulsion_map.repulsion_by_distance(distance)
+        # Right
+        for y_iterator in range(-(window_size - 1) // 2 + 1, window_size // 2, 1):
+            position = (world_i + window_size // 2, world_j + y_iterator)
+            x, y = self._attraction_map.index_to_coord(position[0], position[1])
+            distance = self._calculate_distance(x, y, lidar_points)
+            output[position] = self._repulsion_map.repulsion_by_distance(distance)
+        return output
 
     @staticmethod
     def _calculate_distance(x, y, lidar_points):
         min_distance = numpy.inf
         for lidar_point in lidar_points:
-            distance = math.sqrt((x-lidar_point[0])**2 + (y-lidar_point[1])**2)
+            distance = math.sqrt((x - lidar_point[0]) ** 2 + (y - lidar_point[1]) ** 2)
             if distance < min_distance:
                 min_distance = distance
         return min_distance
+
+    def _compute_window_size(self, distance_to_nearest_obstacle):
+        window_size = int(min(30, distance_to_nearest_obstacle) / self._grid_unit_size)
+
+        if window_size % 2 == 0:
+            window_size -= 1
+
+        window_size -= 2
+        return max(3, window_size)

@@ -1,3 +1,5 @@
+import random
+
 from PathPlanner import PathPlanner
 from MyDroneClient import MyDroneClient
 from Countdowner import Countdowner
@@ -15,8 +17,7 @@ class Agent:
         self._height = current_config.height
         self._velocity = current_config.velocity
         self._lidar_points_counter = Countdowner(5.0)
-        self._lidar_points_counter.start()
-        self._lidar_points = set()
+        self._lidar_points = list()
 
     def connect_and_spawn(self):
         self._drone_client.connect()
@@ -26,10 +27,15 @@ class Agent:
 
     def fly_to_destination(self):
         curr_position = self._start
+        self._lidar_points_counter.start()
         while not self._path_planner.reached_goal(curr_position):
             next_position = self._path_planner.next_step(curr_position, self._lidar_points)
             self._clear_lidar_points()
-            self._drone_client.flyToPosition(next_position[0], next_position[1], self._height, self._velocity)
+            random_next_position = (next_position[0]+0.5*random.random()-0.25, next_position[1]+0.5*random.random()-0.25)
+            self._drone_client.flyToPosition(random_next_position[0], random_next_position[1], self._height,
+                                             self._velocity)
+            print("fly to position")
+            print(next_position[0], next_position[1])
             self._collect_lidar_points()
             while not self._path_planner.reached_location(curr_position, next_position):
                 curr_position = self._drone_client.getPose().pos.x_m, self._drone_client.getPose().pos.y_m
@@ -37,7 +43,7 @@ class Agent:
             curr_position = next_position
 
     def _collect_lidar_points(self):
-        countdowner = Countdowner(1.0)
+        countdowner = Countdowner(0.8)
         countdowner.start()
         while countdowner.running():
             sensed_obstacle, lidar_data, pose = self._drone_client.senseObstacle()
@@ -46,12 +52,12 @@ class Agent:
                 for lidar_sample in parsed_lidar_data:
                     x, y = self._drone_client.getPointInRealWorldCoords(*lidar_sample, pose)
                     if self._path_planner.new_obstacle((x, y)):
-                        point = (round(x, 2), round(y, 2))
+                        point = (round(x, 1), round(y, 1))
                         if not point in self._lidar_points:
                             print(point)
-                            self._lidar_points.add(point)
+                            self._lidar_points.append(point)
 
     def _clear_lidar_points(self):
         if not self._lidar_points_counter.running():
-            self._lidar_points = set()
+            self._lidar_points = self._lidar_points[-20:]
             self._lidar_points_counter.start()

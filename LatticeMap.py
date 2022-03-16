@@ -4,12 +4,12 @@ import math
 import os
 
 from shapely.geometry import Polygon, Point
-from config import current_config
+from config import current_config, InfiniteRepulsionConfig
 
 
 class LatticeMap:
 
-    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, data_type = current_config.data_type):
+    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float, data_type=current_config.data_type):
         self._min_x = min_x
         self._max_x = max_x
         self._min_y = min_y
@@ -28,7 +28,24 @@ class LatticeMap:
 
     def get_local_values(self, x, y):
         i, j = self.coord_to_index(x, y)
-        return self._map[i - 1:i + 2, j - 1:j + 2]
+        output = dict()
+        # Top
+        for x_iterator in range(-(current_config.window_size-1)//2, current_config.window_size//2+1, 1):
+            position = (i + x_iterator, j - current_config.window_size//2)
+            output[position] = self._map[position[0], position[1]]
+        # Bottom
+        for x_iterator in range(-(current_config.window_size-1)//2, current_config.window_size//2+1, 1):
+            position = (i + x_iterator, j + current_config.window_size//2)
+            output[position] = self._map[position[0], position[1]]
+        # Left
+        for y_iterator in range(-(current_config.window_size-1)//2 + 1, current_config.window_size//2, 1):
+            position = (i - current_config.window_size//2, j + y_iterator)
+            output[position] = self._map[position[0], position[1]]
+        # Right
+        for y_iterator in range(-(current_config.window_size-1)//2 + 1, current_config.window_size//2, 1):
+            position = (i + current_config.window_size//2, j + y_iterator)
+            output[position] = self._map[position[0], position[1]]
+        return output
 
     def index_to_coord(self, i, j):
         x = self._min_x + (i + 0.5) * self._unit_size
@@ -105,7 +122,7 @@ class RepulsionMap(LatticeMap):
 
         return 0.5 * (1.0 / distance - 1.0 / self._q_star) ** 2
 
-    def repulsion_by_distance(self, distance):
+    def infinite_repulsion_by_distance(self, distance):
         if distance == 0.0:
             return np.float32(np.inf)
 
@@ -114,11 +131,22 @@ class RepulsionMap(LatticeMap):
 
         return 0.5 * (1.0 / distance - 1.0 / self._q_star) ** 2
 
+    def finite_repulsion_by_distance(self, distance):
+        if distance > self._q_star:
+            return 0.0
+
+        return ((self._q_star - distance)/self._q_star)**current_config.eta
+
     def _repulsion_value(self, i, j):
         total_repulsion = 0.0
         for obs in self._obstacles.values():
             total_repulsion += self._repulsion_from_obstacle(obs, i, j)
         return total_repulsion
+
+    def repulsion_by_distance(self, distance):
+        if type(current_config) is InfiniteRepulsionConfig:
+            return self.infinite_repulsion_by_distance(distance)
+        return self.finite_repulsion_by_distance(distance)
 
     def _init_lattice(self):
         if not current_config.use_obstacles_map:
@@ -144,7 +172,7 @@ class RepulsionMap(LatticeMap):
     def update_map(self, x, y):
         i, j = self.coord_to_index(x, y)
         new_vals = np.ones((3, 3)) * np.inf
-        self._map[i-1:i+2, j-1:j+2] = new_vals
+        self._map[i - 1:i + 2, j - 1:j + 2] = new_vals
 
 
 class ObstacleMap(LatticeMap):
@@ -185,4 +213,3 @@ class ObstacleMap(LatticeMap):
 
     def _load_map(self):
         self._map = np.load(self._calculate_save_path())
-
