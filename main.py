@@ -20,6 +20,7 @@ class MyDroneClient(DroneClient):
         self._state = "GO_TOP_POINT"
 
 
+
     def foolowWall(self):
         self._state = "FOLLOW_OBSTACLE_WALL"
 
@@ -38,7 +39,7 @@ class MyDroneClient(DroneClient):
         return x, y, z
 
     def stop(self):
-        if self.stopped == True:
+        if self.stopped:
             return
 
         self.stopped = True
