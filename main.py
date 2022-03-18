@@ -1,15 +1,16 @@
 import math
-import pickle
+import numpy as np
 import time
 
-from queue import PriorityQueue
-
+import DroneTypes
 from Dijkstra import Dijkstra
 from MapDrawer import MapDrawer
 from DroneClient import DroneClient
 from DroneTypes import Position
 from Obstacles import Obstacles, PersistentGraph
 from shapely.geometry import Polygon, Point, box, mapping
+
+from sim_config import sim_config
 
 
 class MyDroneClient(DroneClient):
@@ -19,8 +20,6 @@ class MyDroneClient(DroneClient):
         self.stopped = False
         self._state = "GO_TOP_POINT"
 
-
-
     def foolowWall(self):
         self._state = "FOLLOW_OBSTACLE_WALL"
 
@@ -29,7 +28,6 @@ class MyDroneClient(DroneClient):
 
     def getState(self):
         return self._state
-
 
     def toCoords(self, pose):
 
@@ -54,111 +52,73 @@ class MyDroneClient(DroneClient):
         self.target_params = x, y, z, v
         super().flyToPosition(x, y, z, v)
 
+    def getLidarData(self):
+        point_cloud = DroneTypes.PointCloud()
+        lidar_data = self.client.getLidarData()
+
+        point_cloud.points = lidar_data.point_cloud
+
+        return point_cloud, self.getPose()
+
     def senseObstacle(self):
-        lidar_data = self.getLidarData()
+        lidar_data, pose = self.getLidarData()
         if lidar_data.points == [0.0]:
-            return False, [0.0]
-        return True, lidar_data.points
+            return False, [0.0], pose
+        return True, lidar_data.points, pose
 
-    def getPointInRealWorldCoords(self,rel_x, rel_y):
-        pose = self.getPose()
-        x_translate  = pose.pos.x_m
-        y_translate = pose.pos.y_m
-        x_orientation = pose.orientation.x_rad
-        y_orientation = pose.orientation.y_rad
+    def getPointInRealWorldCoords(self, x_drone, y_drone, pose):
+        theta = pose.orientation.z_rad
+        x_world = x_drone * np.cos(theta) - y_drone * np.sin(theta) + pose.pos.x_m
+        y_world = x_drone * np.sin(theta) + y_drone * np.cos(theta) + pose.pos.y_m
+        return x_world, y_world
 
-        
-
-
-
-
+    def getPointInPolarCoords(self, rel_x, rel_y):
+        r = math.sqrt(rel_x * rel_x + rel_y * rel_y)
+        theta = math.atan2(rel_y, rel_x)
+        return r, theta
 
 
+    def position_to_point(pos: Position):
+        x = pos.x_m
+        y = pos.y_m
+        return Point(x, y)
 
-        point = Point(abs_x + rel_x, abs_y, rel_y)
-        return point
+    def reached_goal_2D(curr: Position, goal: Position):
+        diff_x = curr.x_m - goal.x_m
+        diff_y = curr.y_m - goal.y_m
+        dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
 
-from Vertex import Vertex
-
-
-# def test_pq():
-#     Q = PriorityQueue()
-#
-#     v1 = Vertex(Point(0.0, 0.0))
-#     v2 = Vertex(Point(0.0, 0.0))
-#     v3 = Vertex(Point(0.0, 0.0))
-#     v4 = Vertex(Point(0.0, 0.0))
-#     v5 = Vertex(Point(0.0, 0.0))
-#
-#     v1.set_distance(1.0)
-#     v2.set_distance(22.0)
-#     v3.set_distance(3.0)
-#     v4.set_distance(4.0)
-#     v5.set_distance(5.0)
-#
-#     Q.put(v2)
-#     Q.put(v4)
-#     Q.put(v5)
-#     Q.put(v1)
-#     Q.put(v3)
-#
-#     v2.set_distance(0.5)
-#     Q.get()
-#     Q.put(v2)
-#     vv1 = Q.get()
-#     vv2 = Q.get()
-#     vv3 = Q.get()
-#     vv4 = Q.get()
-#     vv5 = Q.get()
-
-    x = 1
-
-def position_to_point(pos: Position):
-    x = pos.x_m
-    y = pos.y_m
-    return Point(x, y)
-
-def reached_goal_2D(curr: Position, goal: Position):
-    diff_x = curr.x_m - goal.x_m
-    diff_y = curr.y_m - goal.y_m
-    dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
-
-    if dist < 5.0:
-        return True
-    return False
+        if dist < 5.0:
+            return True
+        return False
 
 
 if __name__ == "__main__":
 
+    config = sim_config()
     obs = Obstacles()
-    obs.read_csv()
+    obs.set_destination_point(config.destination)
 
-    loaded_graph = None
-    # file_to_read = open("graph.pickle", "rb")
-    # loaded_graph = pickle.load(file_to_read)
-
-    obs.build_visibility_graph(loaded_graph)
+    if config.load_from_json:
+        obs.load_from_json()
+    else:
+        obs.read_csv()
+        obs.build_visibility_graph()
+    obs.set_source(config.source)
+    obs.set_destination(config.destination)
+    ################### MAP DRAWER ###########################################
     md = MapDrawer()
-    source = Point(-1250.0, -830.0)
-    destination = Point(0.0, -600.0)
-    obs.set_source(source)
-    obs.set_destination(destination)
-
-    ########################################################################################
-    graph = PersistentGraph()
-    # graph.set(obs.get_edges(), obs.get_vertices())
-    # file_to_store = open("full_graph.pickle", "wb")
-    # pickle.dump(graph, file_to_store)
-    # file_to_store.close()
-    ########################################################################################
-
-    md.set_source(source)
-    md.set_destination(destination)
+    md.set_source(config.source)
+    md.set_destination(config.destination)
     polygons = obs.get_polygons()
     md.add_polygons(polygons)
     print("Number of polygons is: " + str(len(polygons)))
     edges = obs.get_edges()
     md.add_edges(edges)
+    ###########################################################################
+
+    ################### A STAR ################################################
+
     src = obs.get_source_vertex()
     dst = obs.get_destination_vertex()
     dij = Dijkstra()
@@ -171,51 +131,55 @@ if __name__ == "__main__":
     print("Number Of vertices visited :" + str(dij.get_num_of_vertices_visited()))
     md.show()
 
+    ###########################################################################
+
     client = MyDroneClient()
     client.connect()
     print(client.isConnected())
     time.sleep(4)
     path.reverse()
-    client.setAtPosition(source.x, source.y, -100)
+    client.setAtPosition(config.source.x, config.source.y, config.height)
     time.sleep(3)
 
     prev_point_num = 0
     point_num = 1
     need_fly_command = True
     real_path = list()
+
     while True:
+
         lidar_data = client.getLidarData()
         goal = Position()
-
         p = path[point_num].point()
-        goal.x_m, goal.y_m, goal.z_m = p.x, p.y, -100.0
+        goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
         if need_fly_command:
-            client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, 5)
+            client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, config.velocity)
             need_fly_command = False
             print("Flying to point number: " + str(point_num))
 
-        if reached_goal_2D(client.getPose().pos, goal):
+        if client.reached_goal_2D(client.getPose().pos, goal):
             print("Reached goal number : " + str(point_num))
             prev_point_num = point_num
             point_num += 1
             need_fly_command = True
             pos = client.getPose().pos
-            real_path.append(position_to_point(pos))
+            real_path.append(client.position_to_point(pos))
             if point_num == len(path):
+                print("Reached destination at ("+str(client.getPose().pos.x_m)+", "+str(client.getPose().pos.y_m)+") ")
                 break
 
-        sensing_obstacle, points_list = client.senseObstacle()
-        if sensing_obstacle:
-            print("Lidar points : " + str(points_list))
-
-        position = client.getPose().pos
-
-
-        if obs.is_point_in_obstacle()
+        # sensing_obstacle, points_list = client.senseObstacle()
+        # if sensing_obstacle:
+        #     print("Lidar points : " + str(points_list))
+        #
+        # position = client.getPose().pos
 
 
-        md.set_real_path(real_path)
-        md.show()
+        # if obs.is_point_in_obstacle()
+        #
+        #
+        # md.set_real_path(real_path)
+        # md.show()
 
 
 

@@ -90,8 +90,6 @@ class Obstacles:
         self._edges_list = list()
         self._vertices = dict()
         self._vertices_list = list()
-        self._source_vertex = None
-        self._destination_vertex = None
         self._destination_point = None
         self._graph_is_built = False
 
@@ -136,6 +134,7 @@ class Obstacles:
         assert self._destination_point
         for p in points_list:
             vertex = Vertex(p, polygon, self._destination_point)
+            #vertex = Vertex(p, polygon, None)
             x, y = p.x, p.y
             key = x, y
             self._vertices[key] = vertex
