@@ -66,9 +66,9 @@ class DroneClient:
         point_cloud = DroneTypes.PointCloud()
         lidar_data = self.client.getLidarData('Lidar1')
 
-        point_cloud.points = lidar_data.point_cloud
+        #point_cloud.points = lidar_data.point_cloud
 
-        return point_cloud
+        return lidar_data
 
     def flyToPosition(self, x: float, y: float, z: float, v: float):
         """

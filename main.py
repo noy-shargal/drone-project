@@ -1,4 +1,6 @@
 import math
+from collections import OrderedDict
+
 import numpy as np
 import time
 
@@ -10,6 +12,8 @@ from DroneTypes import Position
 from Obstacles import Obstacles, PersistentGraph
 from shapely.geometry import Polygon, Point, box, mapping
 
+from TangentBug import TangentBug
+from Vertex import Vertex
 from sim_config import sim_config
 
 
@@ -54,17 +58,24 @@ class MyDroneClient(DroneClient):
 
     def getLidarData(self):
         point_cloud = DroneTypes.PointCloud()
-        lidar_data = self.client.getLidarData()
+        lidar_data = self.client.getLidarData('Lidar1')
+        # point_cloud.points = lidar_data.point_cloud
+        return lidar_data
 
-        point_cloud.points = lidar_data.point_cloud
 
-        return point_cloud, self.getPose()
+        # point_cloud = DroneTypes.PointCloud()
+        # lidar_data = self.client.getLidarData()
+        #
+        # point_cloud.points = lidar_data.point_cloud
+        #
+        # return point_cloud, self.getPose()
 
     def senseObstacle(self):
-        lidar_data, pose = self.getLidarData()
-        if lidar_data.points == [0.0]:
-            return False, [0.0], pose
-        return True, lidar_data.points, pose
+        #lidar_data, pose = self.getLidarData()
+        lidar_data  = self.getLidarData()
+        if lidar_data.point_cloud == [0.0]:
+            return False, [0.0], lidar_data.pose
+        return True, lidar_data.point_cloud, lidar_data.pose
 
     def getPointInRealWorldCoords(self, x_drone, y_drone, pose):
         theta = pose.orientation.z_rad
@@ -78,12 +89,12 @@ class MyDroneClient(DroneClient):
         return r, theta
 
 
-    def position_to_point(pos: Position):
+    def position_to_point(self, pos: Position):
         x = pos.x_m
         y = pos.y_m
         return Point(x, y)
 
-    def reached_goal_2D(curr: Position, goal: Position):
+    def reached_goal_2D(self, curr: Position, goal: Position):
         diff_x = curr.x_m - goal.x_m
         diff_y = curr.y_m - goal.y_m
         dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
@@ -107,14 +118,14 @@ if __name__ == "__main__":
     obs.set_source(config.source)
     obs.set_destination(config.destination)
     ################### MAP DRAWER ###########################################
-    md = MapDrawer()
-    md.set_source(config.source)
-    md.set_destination(config.destination)
+    #md = MapDrawer()
+    #md.set_source(config.source)
+    #md.set_destination(config.destination)
     polygons = obs.get_polygons()
-    md.add_polygons(polygons)
+    #md.add_polygons(polygons)
     print("Number of polygons is: " + str(len(polygons)))
     edges = obs.get_edges()
-    md.add_edges(edges)
+    #md.add_edges(edges)
     ###########################################################################
 
     ################### A STAR ################################################
@@ -126,60 +137,114 @@ if __name__ == "__main__":
     path = None
     if found:
         path = dij.get_path()
-        md.set_path(path)
+        #md.set_path(path)
     print("Total Distance: " + str(dst.get_distance()))
     print("Number Of vertices visited :" + str(dij.get_num_of_vertices_visited()))
-    md.show()
+    #md.show()
 
     ###########################################################################
+    try:
+        client = MyDroneClient()
+        client.reset()
+        print ("Connecting.....")
+        client.connect()
+        print(client.isConnected())
+        time.sleep(4)
+        path.reverse()
+        client.setAtPosition(config.source.x, config.source.y, config.height)
+        time.sleep(5)
+        print ("Init position "+ str ([config.source.x, config.source.y, config.height]))
 
-    client = MyDroneClient()
-    client.connect()
-    print(client.isConnected())
-    time.sleep(4)
-    path.reverse()
-    client.setAtPosition(config.source.x, config.source.y, config.height)
-    time.sleep(3)
+        prev_point_num = 0
+        point_num = 1
+        need_fly_command = True
+        real_path = list()
 
-    prev_point_num = 0
-    point_num = 1
-    need_fly_command = True
-    real_path = list()
+        tb = TangentBug()
 
-    while True:
+        DEBUG_ltg_count = 0
+        while True:
 
-        lidar_data = client.getLidarData()
-        goal = Position()
-        p = path[point_num].point()
-        goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
-        if need_fly_command:
-            client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, config.velocity)
-            need_fly_command = False
-            print("Flying to point number: " + str(point_num))
+            lidar_data = client.getLidarData()
+            goal = Position()
+            p = path[point_num].point()
+            goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
 
-        if client.reached_goal_2D(client.getPose().pos, goal):
-            print("Reached goal number : " + str(point_num))
-            prev_point_num = point_num
-            point_num += 1
-            need_fly_command = True
-            pos = client.getPose().pos
-            real_path.append(client.position_to_point(pos))
-            if point_num == len(path):
-                print("Reached destination at ("+str(client.getPose().pos.x_m)+", "+str(client.getPose().pos.y_m)+") ")
-                break
+            new_obstacle_points = 0
 
-        # sensing_obstacle, points_list = client.senseObstacle()
-        # if sensing_obstacle:
-        #     print("Lidar points : " + str(points_list))
-        #
-        # position = client.getPose().pos
+            if need_fly_command:
+                client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, config.velocity)
+                need_fly_command = False
+                print("Flying to point number: " + str(point_num)+ str ([goal.x_m, goal.y_m, goal.z_m]))
+
+            if client.reached_goal_2D(client.getPose().pos, goal):
+                print("Reached goal number : " + str(point_num))
+                prev_point_num = point_num
+                point_num += 1
+                need_fly_command = True
+                pos = client.getPose().pos
+                real_path.append(client.position_to_point(pos))
+                if point_num == len(path):
+                    print("Reached destination at ("+str(client.getPose().pos.x_m)+", "+str(client.getPose().pos.y_m)+") ")
+                    break
+
+            sensing_obstacle, points_list, pose = client.senseObstacle()
+            if sensing_obstacle:
+                # print ("sensed obstacle : "+str(points_list), str(pose))
+                xw, yw = client.getPointInRealWorldCoords(points_list[0], points_list[1], client.getPose())
+                # print("getPointInRealWorldCoords -> ", "("+str(xw) +", "+ str(yw)+ ")")
+                # print ("Drone location : (", str(client.getPose().pos.x_m), ", "+str(client.getPose().pos.y_m)+")")
+
+                is_known_obs = obs.is_point_in_obstacles_map(Point(xw, yw))
+                if not is_known_obs:
 
 
-        # if obs.is_point_in_obstacle()
-        #
-        #
-        # md.set_real_path(real_path)
-        # md.show()
+                    tb.add_point(Point(points_list[0], points_list[1]), Point(xw, yw))
+                    if tb.get_num_of_points() > 5 and tb.is_way_blocked():
+                        client.stop()
 
+                        curr_poss = Point(client.getPose().pos.x_m, client.getPose().pos.y_m)
+                        tb.set_current_position(curr_poss)
+                        next_goal = Point(goal.x_m, goal.y_m)
+                        tb.set_target(next_goal)
+                        tb.build_ltg()
+                        sg = tb.build_sub_graph()
+                        closest_point = sg.get_closet_point_to_target()
+                        client.flyToPosition(closest_point.x , closest_point.y, config.height, config.ltf_velocity)
+                        if sg.is_source_local_minima():
+                            print("Reached Local Minima")
+                            point = tb.get_closest_endpoint_to_target(curr_poss)
+                            client.flyToPosition(point.x, point.y, config.height, config.ltf_velocity)
+                        #time.sleep(0.24)
+                        y = 9
+                        tb = TangentBug()
+                        DEBUG_ltg_count +=1
+                        print("tangent bug number : "+ str(DEBUG_ltg_count))
+
+
+
+
+                    print("sensed obstacle : " + str(points_list), str(pose))
+                    print("getPointInRealWorldCoords -> ", "(" + str(xw) + ", " + str(yw) + ")")
+                    print("Drone location : (", str(client.getPose().pos.x_m), ", " + str(client.getPose().pos.y_m) , ", " + str(client.getPose().pos.z_m)+ ")")
+                    print ("unknown obstacle !")
+
+
+            # else:
+            #     print("didn't sense obstacle : " + str(points_list), str(pose))
+            # if sensing_obstacle:
+            #     print("Lidar points : " + str(points_list))
+            #
+            # position = client.getPose().pos
+
+
+            # if obs.is_point_in_obstacle()
+            #
+            #
+            # md.set_real_path(real_path)
+            # md.show()
+    finally:
+        client.reset()
+    exit(1)
 
 
