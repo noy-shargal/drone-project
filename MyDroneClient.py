@@ -6,6 +6,7 @@ from shapely.geometry import Point
 
 
 class MyDroneClient(DroneClient):
+    LIDAR_ANGLE_APERTURE = 180
 
     def __init__(self):
         super().__init__()
@@ -66,3 +67,37 @@ class MyDroneClient(DroneClient):
         for i in range(len(lidar_data)//3):
             output.append((lidar_data[i*3], lidar_data[i*3+1]))
         return output
+
+    def full_lidar_scan(self, theta_resolution=1, continuously_update=True):
+        """
+        acquires a full angle aperture scan for the lidar
+        :param theta_resolution: the step between different acquisitions
+        :param continuously_update: if on will keep updating an acquired cell with new samples
+        :return: a vector containing discrete samples for the entire angle range
+        """
+        num_of_angles = self.LIDAR_ANGLE_APERTURE // theta_resolution
+        output = np.zeros((num_of_angles,))
+        while np.any(np.zeros_like(output) == output):
+            lidar_data = self.client.getLidarData('Lidar1')
+            angle = self._extract_angle(lidar_data.pose)
+            value = self._prepare_lidar_value(lidar_data.point_cloud)
+            angle_index = self._angle_to_index(angle, theta_resolution)
+            if continuously_update or not output[angle_index]:
+                output[angle_index] = value
+        return output
+
+    @staticmethod
+    def _extract_angle(pose):
+        return pose.orientation.z_rad
+
+    @staticmethod
+    def _prepare_lidar_value(point_cloud):
+        x, y = point_cloud[0], point_cloud[1]
+        dist = math.sqrt(x**2 + y**2)
+        if dist == 0.0:
+            dist = np.float(np.inf)
+        return dist
+
+    @staticmethod
+    def _angle_to_index(angle, theta_resolution):
+        return int(angle / theta_resolution)
