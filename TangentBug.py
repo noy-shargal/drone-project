@@ -116,6 +116,12 @@ class TangentBug:
 
             self._lidar_polar_points.append(PointInfo(r, theta, point, world_frame_point, is_blocked))
 
+    def get_vr(self):
+        return self._vr.point_world_frame
+
+    def get_vl(self):
+        return self._vl.point_world_frame
+
     def get_closest_endpoint_to_target(self,curr_poss: Point):
 
         dx_vr = curr_poss.distance(self._vr.point_world_frame)
@@ -127,11 +133,8 @@ class TangentBug:
         d_vl = dx_vl + dh_vl
 
         if d_vl < d_vr:
-
-
-
-            return self._vl.point_world_frame
-        return self._vr.point_world_frame
+            return self._vl.point_world_frame, "VL"
+        return self._vr.point_world_frame, "VR"
 
     def get_num_of_points(self):
         return len(self._lidar_polar_points)
@@ -164,16 +167,21 @@ class TangentBug:
         return v1, v2
 
     def build_ltg(self):
+        assert self._target_vertex
+        assert self._current_position
+
         self._lidar_polar_points.sort()
         self._split_to_segments()
         for segment in self._segments:
             v1, v2 = self._get_endpoints_vertices(segment)
-            edge = TGEdge(v1, v2)
-            v1.add_edge(edge)
-            v2.add_edge(edge)
+            edge1 = TGEdge(v1, self._target_vertex)
+            edge2 = TGEdge(v2, self._target_vertex)
+            v1.add_edge(edge1)
+            v2.add_edge(edge2)
             self._ltg.add_vertex(v1)
             self._ltg.add_vertex(v2)
-            self._ltg.add_edge(edge)
+            self._ltg.add_edge(edge1)
+            self._ltg.add_edge(edge2)
 
     def build_sub_graph(self):
         self._sub_graph = SubGraph(self._ltg)

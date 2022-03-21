@@ -1,7 +1,7 @@
 from shapely.geometry import Point
 
 
-class sim_config:
+class Config:
 
     def __init__(self):
 
@@ -14,3 +14,4 @@ class sim_config:
 
 
 
+config = Config()

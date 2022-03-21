@@ -103,7 +103,7 @@ class SubGraph(LTG):
         # add admisible vertices
         for vertex in vertices:
            if vertex.vtype == "INNER":
-               #if vertex.point().distance( self._target_vertex.point()) < source_target_distance: # then admisible Vertex
+               if vertex.point().distance( self._target_vertex.point()) < self.source_target_distance: # then admisible Vertex
                 sub_graph_vertex = TGVertex( vertex.point())
                 self.add_vertex(sub_graph_vertex)
 
@@ -138,7 +138,8 @@ class SubGraph(LTG):
         return dx + dh
 
     def _get_next_boundry_walk_point(self):
-        self._closet_vertex_to_target
+        #self._closet_vertex_to_target
+        pass
 
     def get_closet_point_to_target(self):
         return self._closet_vertex_to_target.point()

@@ -16,6 +16,8 @@ class Dijkstra:
             self._path.append(curr_vertex)
             curr_vertex = curr_vertex.get_prev_vertex()
 
+        self._path.reverse()
+
     def search(self, source: Vertex, destination: Vertex):
         self._num_of_vertices_visited = 0
         now = datetime.now()
