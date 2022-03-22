@@ -30,6 +30,7 @@ class Agent:
         print(self._client.isConnected())
         time.sleep(2)
 
+
     def fly_to_destination(self):
 
         print("Init position " + str([config.source.x, config.source.y, config.height]))

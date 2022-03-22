@@ -68,7 +68,7 @@ class MyDroneClient(DroneClient):
             output.append((lidar_data[i*3], lidar_data[i*3+1]))
         return output
 
-    def full_lidar_scan(self, theta_resolution=1, continuously_update=True):
+    def full_lidar_scan(self, theta_resolution=1, continuously_update=False):
         """
         acquires a full angle aperture scan for the lidar
         :param theta_resolution: the step between different acquisitions
@@ -79,23 +79,29 @@ class MyDroneClient(DroneClient):
         output = np.zeros((num_of_angles,))
         while np.any(np.zeros_like(output) == output):
             lidar_data = self.client.getLidarData('Lidar1')
+
+
+
             angle = self._extract_angle(lidar_data.pose)
             value = self._prepare_lidar_value(lidar_data.point_cloud)
             angle_index = self._angle_to_index(angle, theta_resolution)
-            if continuously_update or not output[angle_index]:
-                output[angle_index] = value
+            print(f"LIDAR: {angle}, {angle_index}, {value}")
+            # if continuously_update or not output[angle_index]:
+            #     output[angle_index] = value
+            #     print(f"LIDAR: {angle}, {angle_index}, {value}")
         return output
 
     @staticmethod
     def _extract_angle(pose):
-        return pose.orientation.z_rad
+        theta = math.atan2(pose.orientation.y_val, pose.orientation.x_val) * 180 / math.pi
+        return theta
 
     @staticmethod
     def _prepare_lidar_value(point_cloud):
+        if len(point_cloud) == 1 and point_cloud[0] == 0.0:
+            return np.float(np.inf)
         x, y = point_cloud[0], point_cloud[1]
         dist = math.sqrt(x**2 + y**2)
-        if dist == 0.0:
-            dist = np.float(np.inf)
         return dist
 
     @staticmethod
