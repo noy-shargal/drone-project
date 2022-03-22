@@ -1,29 +1,16 @@
-import math
-
-from shapely.geometry import Point
-
-import DroneTypes
 from DroneClient import DroneClient
+import DroneTypes
 import numpy as np
-from DroneTypes import Position
+import math
+from shapely.geometry import Point
 
 
 class MyDroneClient(DroneClient):
+    LIDAR_ANGLE_APERTURE = 180
 
     def __init__(self):
         super().__init__()
-        self.target_params = None
         self.stopped = False
-        self._state = "GO_TOP_POINT"
-
-    def foolowWall(self):
-        self._state = "FOLLOW_OBSTACLE_WALL"
-
-    def goToPoint(self):
-        self._state = "GO_TO_POINT"
-
-    def getState(self):
-        return self._state
 
     def toCoords(self, pose):
 
@@ -33,7 +20,7 @@ class MyDroneClient(DroneClient):
         return x, y, z
 
     def stop(self):
-        if self.stopped:
+        if self.stopped == True:
             return
 
         self.stopped = True
@@ -50,24 +37,17 @@ class MyDroneClient(DroneClient):
 
     def getLidarData(self):
         point_cloud = DroneTypes.PointCloud()
-        lidar_data = self.client.getLidarData('Lidar1')
-        # point_cloud.points = lidar_data.point_cloud
-        return lidar_data
+        lidar_data = self.client.getLidarData()
 
+        point_cloud.points = lidar_data.point_cloud
 
-        # point_cloud = DroneTypes.PointCloud()
-        # lidar_data = self.client.getLidarData()
-        #
-        # point_cloud.points = lidar_data.point_cloud
-        #
-        # return point_cloud, self.getPose()
+        return point_cloud, self.getPose()
 
     def senseObstacle(self):
-        #lidar_data, pose = self.getLidarData()
-        lidar_data  = self.getLidarData()
-        if lidar_data.point_cloud == [0.0]:
-            return False, [0.0], lidar_data.pose
-        return True, lidar_data.point_cloud, lidar_data.pose
+        lidar_data, pose = self.getLidarData()
+        if lidar_data.points == [0.0]:
+            return False, [0.0], pose
+        return True, lidar_data.points, pose
 
     def getPointInRealWorldCoords(self, x_drone, y_drone, pose):
         theta = pose.orientation.z_rad
@@ -80,17 +60,44 @@ class MyDroneClient(DroneClient):
         theta = math.atan2(rel_y, rel_x)
         return r, theta
 
+    @staticmethod
+    def parse_lidar_data(lidar_data):
+        assert len(lidar_data) % 3 == 0
+        output = list()
+        for i in range(len(lidar_data)//3):
+            output.append((lidar_data[i*3], lidar_data[i*3+1]))
+        return output
 
-    def position_to_point(self, pos: Position):
-        x = pos.x_m
-        y = pos.y_m
-        return Point(x, y)
+    def full_lidar_scan(self, theta_resolution=1, continuously_update=True):
+        """
+        acquires a full angle aperture scan for the lidar
+        :param theta_resolution: the step between different acquisitions
+        :param continuously_update: if on will keep updating an acquired cell with new samples
+        :return: a vector containing discrete samples for the entire angle range
+        """
+        num_of_angles = self.LIDAR_ANGLE_APERTURE // theta_resolution
+        output = np.zeros((num_of_angles,))
+        while np.any(np.zeros_like(output) == output):
+            lidar_data = self.client.getLidarData('Lidar1')
+            angle = self._extract_angle(lidar_data.pose)
+            value = self._prepare_lidar_value(lidar_data.point_cloud)
+            angle_index = self._angle_to_index(angle, theta_resolution)
+            if continuously_update or not output[angle_index]:
+                output[angle_index] = value
+        return output
 
-    def reached_goal_2D(self, curr: Position, goal: Position):
-        diff_x = curr.x_m - goal.x_m
-        diff_y = curr.y_m - goal.y_m
-        dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
+    @staticmethod
+    def _extract_angle(pose):
+        return pose.orientation.z_rad
 
-        if dist < 5.0:
-            return True
-        return False
+    @staticmethod
+    def _prepare_lidar_value(point_cloud):
+        x, y = point_cloud[0], point_cloud[1]
+        dist = math.sqrt(x**2 + y**2)
+        if dist == 0.0:
+            dist = np.float(np.inf)
+        return dist
+
+    @staticmethod
+    def _angle_to_index(angle, theta_resolution):
+        return int((angle + 90) / theta_resolution)

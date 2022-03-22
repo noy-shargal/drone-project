@@ -1,5 +1,5 @@
 from typing import List
-
+from Obstacle import ThinWallObstacle
 import numpy as np
 from shapely.geometry import Point, LineString
 
@@ -19,7 +19,7 @@ class TGEdge:
 
 class TGVertex:
 
-    def __init__(self, point: Point, admissible = False, vtype="INNER"):
+    def __init__(self, point: Point, admissible=False, vtype="INNER"):
         super().__init__()
         self._edges = list()
         self._point = point
@@ -58,118 +58,7 @@ class TGVertex:
         return self._distance_to_target
 
 
-class LTG:
-
-    def __init__(self):
-        self._edges = list()
-        self._vertices = list()
-        self._source_vertex = None
-        self._target_vertex = None
-
-
-    def add_edges(self, edges: List):
-        self._edges.extend(edges)
-
-    def add_edge(self, edge: TGEdge):
-        self._edges.append(edge)
-
-    def add_vertices(self, vertices: List):
-        self._vertices.extend(vertices)
-
-    def add_vertex(self, vertex: TGVertex):
-
-        self._vertices.append(vertex)
-
-    def set_source_vertex(self, source: TGVertex):
-        self._source_vertex = source
-        self._source_vertex.vtype = "SOURCE"
-        self.add_vertex(source)
-
-    def set_target_vertex(self, target: TGVertex):
-        self._target_vertex = target
-        self._target_vertex.vtype = "TARGET"
-        self.add_vertex(target)
-
-    def get_source(self) -> TGVertex:
-        return self._source_vertex
-
-    def get_target(self) -> TGVertex:
-        return self._target_vertex
-
-    def get_vertices(self) -> List:
-        return self._vertices
-
-
-class SubGraph(LTG):
-
-    def __init__(self, ltg: LTG):
-        super(SubGraph, self).__init__()
-        self._ltg = ltg
-        self.source_target_distance = None
-        self._closet_vertex_to_target_distance = 10000
-
-        source = ltg.get_source()
-        target = ltg.get_target()
-
-        source_vertex = TGVertex(source.point(), "SOURCE")
-        self.set_source_vertex(source_vertex)
-
-        target_vertex = TGVertex(target.point(), "TARGET")
-        self.set_target_vertex(target_vertex)
-
-        vertices = ltg.get_vertices()
-
-        self.source_target_distance = source_vertex.point().distance(target_vertex.point())
-        # add admisible vertices
-        for vertex in vertices:
-            if vertex.vtype == "INNER":
-                if vertex.point().distance(
-                        self._target_vertex.point()) < self.source_target_distance:  # then admisible Vertex
-                    sub_graph_vertex = TGVertex(vertex.point())
-                    self.add_vertex(sub_graph_vertex)
-
-        # edges
-
-        self._closet_vertex_to_target = None
-
-        for vertex in self._vertices:
-            # connecting source to vertex
-            if vertex.vtype != "SOURCE":
-                edge = TGEdge(self._source_vertex, vertex)
-                self.add_edge(edge)
-                vertex.add_edge(edge)
-                self._source_vertex.add_edge(edge)
-
-            # connecting vertex to target
-            if vertex.vtype != "TARGET" and vertex.vtype != "SOURCE":
-                edge = TGEdge(vertex, self._target_vertex)
-                self.add_edge(edge)
-                vertex.add_edge(edge)
-                self._target_vertex.add_edge(edge)
-                distance = self._get_distance_to_target(vertex)
-                if distance < self._closet_vertex_to_target_distance:
-                    self._closet_vertex_to_target = vertex
-                    self._closet_vertex_to_target_distance = distance
-
-    def _get_distance_to_target(self, vertex):
-
-        dx = self._source_vertex.point().distance(vertex.point())
-        dh = vertex.point().distance(self._target_vertex.point())
-        return dx + dh
-
-    def _get_next_boundry_walk_point(self):
-        # self._closet_vertex_to_target
-        pass
-
-    def get_closet_point_to_target(self):
-        return self._closet_vertex_to_target.point()
-
-    def is_source_local_minima(self):
-        return self.source_target_distance < self._closet_vertex_to_target_distance
-
-
 class AugmentedSubGraph:
-
     LIDAR_RANGE = 35
 
     def __init__(self, current_location: Point, target: Point):
@@ -182,6 +71,7 @@ class AugmentedSubGraph:
         self._vertices = list()
         self._edges = list()
 
+        self._t_blocking_obstacle = None
         self._blocking_obstacle = None
 
         self._build_obstacle_vertices()
@@ -196,7 +86,7 @@ class AugmentedSubGraph:
     def get_vertices(self):
         return self._vertices
 
-    def _get_t_node_position(self, curr_position:  Point, target: Point):
+    def _get_t_node_position(self, curr_position: Point, target: Point):
         theta = np.atan2(target.y - curr_position.y, target.x - curr_position.x)
         r = np.min(self.LIDAR_RANGE, curr_position.distance(target))
         delta_x = r * np.cos(theta)
@@ -209,12 +99,11 @@ class AugmentedSubGraph:
         for obs in obstacles:
             obstacle_line = LineString([obs._first_endpoint, obs._second_endpoint])
             if line_to_target.intersects(obstacle_line):
-                self._blocking_obstacle = obs
+                self._t_blocking_obstacle = obs
                 return
 
-        t_node = TGVertex(self._get_t_node_position(curr_pos,target),admissible=True,vtype= "T_NODE")
+        t_node = TGVertex(self._get_t_node_position(curr_pos, target), admissible=True, vtype="T_NODE")
         self.add_vertex(t_node)
-
 
     def add_vertex(self, vertex: TGVertex):
         self._vertices.append(vertex)
@@ -234,16 +123,12 @@ class AugmentedSubGraph:
     def add_edge(self, edge: TGEdge):
         self._edges.append(edge)
 
-    def is_source_local_minima(self):
-
-
     def get_closet_point_to_target(self):
-
         min_distance = np.float(np.inf)
         point = None
         for v in self._vertices:
             if v.is_admissible:
-                distance = self._current_location.distance(v.point()) +\
+                distance = self._current_location.distance(v.point()) + \
                            v.get_distance_to_target()
                 if min_distance > distance:
                     min_distance = distance
@@ -253,10 +138,24 @@ class AugmentedSubGraph:
         return point, min_distance
 
     def get_blocking_obstacle(self):
+        if self._blocking_obstacle is None:
+            return self._t_blocking_obstacle
         return self._blocking_obstacle
 
-    def calculate_d_min(self, blocking_obstacle=None):
-        d_min, _ = blocking_obstacle.get_closest_point_to_target()
+    def calculate_d_min(self):
+        d_min, _ = self._t_blocking_obstacle.get_closest_point_to_target()
         return d_min
 
-    def find_following_direction(self):
+    def update_blocking_obstacle(self, curr_pos: Point, obstacles: List[ThinWallObstacle]):
+        min_dist = np.float(np.inf)
+        relevant_obs = None
+        for obs in obstacles:
+            distance = obs._line.project(curr_pos)
+            if distance < min_dist:
+                min_dist = distance
+                relevant_obs = obs
+        self._blocking_obstacle = relevant_obs
+
+    def is_g2_empty(self, d_min):
+        _, min_distance = self.get_closet_point_to_target()
+        return min_distance >= d_min
