@@ -51,17 +51,20 @@ class TangentBug:
 
     def _enter_wall_mode(self, sub_graph: AugmentedSubGraph):
         self._mode = TangentBugModes.WALL_WALKING
+        blocking_obstacle = sub_graph.get_blocking_obstacle()
+        d_min, point = blocking_obstacle.get_closest_point_to_target(self._target)
 
-        self._wall_mode_data['blocking_obstacle'] = sub_graph.get_blocking_obstacle()
-        self._wall_mode_data['d_min'] = sub_graph.calculate_d_min()
-        self._wall_mode_data['direction'] = sub_graph.find_following_direction()
+        self._wall_mode_data['blocking_obstacle'] = blocking_obstacle
+        self._wall_mode_data['d_min'] = d_min
         self._start_point = self.current_pose.location
 
     def _wall_step(self, sub_graph: AugmentedSubGraph):
         blocking_obstacle = sub_graph.get_blocking_obstacle()
         self._wall_mode_data['d_min'] = sub_graph.calculate_d_min()
         if sub_graph.g2_is_empty():
-            return self._next_boundary_following_or_exit(blocking_obstacle)
+            step = self._next_boundary_following_or_exit(blocking_obstacle)
+            self._wall_mode_data['last_step'] = step
+            return step
         self._enter_transition_mode()
         return self._transition_step(sub_graph)
 

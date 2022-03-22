@@ -212,7 +212,7 @@ class AugmentedSubGraph:
                 self._blocking_obstacle = obs
                 return
 
-        t_node = TGVertex(self._get_t_node_position(curr_pos,target), "T_NODE")
+        t_node = TGVertex(self._get_t_node_position(curr_pos,target),admissible=True,vtype= "T_NODE")
         self.add_vertex(t_node)
 
 
@@ -256,9 +256,7 @@ class AugmentedSubGraph:
         return self._blocking_obstacle
 
     def calculate_d_min(self, blocking_obstacle=None):
-        if blocking_obstacle is None:
-            blocking_obstacle = self._blocking_obstacle
-        pass
+        d_min, _ = blocking_obstacle.get_closest_point_to_target()
+        return d_min
 
     def find_following_direction(self):
-        pass
