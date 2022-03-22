@@ -33,17 +33,13 @@ class Agent:
     def fly_to_destination(self):
 
         print("Init position " + str([config.source.x, config.source.y, config.height]))
-
         prev_point_num = 0
         point_num = 1
         need_fly_command = True
         real_path = list()
-
         tb = TangentBug()
-
         client = self._client
 
-        DEBUG_ltg_count = 0
         while True:
 
             lidar_data = client.getLidarData()
@@ -102,8 +98,6 @@ class Agent:
                         # time.sleep(0.24)
                         y = 9
                         tb = TangentBug()
-                        DEBUG_ltg_count += 1
-                        print("tangent bug number : " + str(DEBUG_ltg_count))
 
                     print("sensed obstacle : " + str(points_list), str(pose))
                     print("getPointInRealWorldCoords -> ", "(" + str(xw) + ", " + str(yw) + ")")

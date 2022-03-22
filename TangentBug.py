@@ -1,209 +1,185 @@
-from typing import List, Dict
-from utils import get_point_in_polar_degrees_coords
-from shapely.geometry import Point
+from enum import Enum
+from typing import List
 
+import numpy as np
+from shapely.geometry import LineString
 
-from LTG import LTG, TGEdge, TGVertex, SubGraph
+from LTG import AugmentedSubGraph, TGEdge, TGVertex
+from Obstacle import ThinWallObstacle
 
-
-class PointInfo:
-
-    def __init__(self, r, theta, point_lidar_frame, point_world_frame, is_blocked):
-        self.r = r
-        self.theta = theta
-        self.point_lidar_frame = point_lidar_frame
-        self.point_world_frame = point_world_frame
-        self.is_blocked = is_blocked
-
-    def __lt__(self, other):
-        return self.theta < other.theta
-
-
-class TGSegment:
-
-    def __init__(self,  is_blocked):
-        self._points = list()
-        self._is_blocked = is_blocked
-        self._vertices = list()
-
-    def is_blocked(self):
-        return self._is_blocked
-
-    def add_point(self, point_info: PointInfo):
-        self._points.append(point_info)
-
-    def get_endpoints(self):
-
-        min_theta = 10000
-        max_theta = -10000
-        min_theta_point = None
-        max_theta_point = None
-        for p_info in  self._points:
-            if p_info.r < min_theta:
-                min_theta = p_info.r
-                min_theta_point = p_info.point_world_frame
-
-            if p_info.r > max_theta:
-                max_theta = p_info.r
-                max_theta_point = p_info.point_world_frame
-
-        return min_theta_point, max_theta_point
-
+class TangentBugModes(Enum):
+    TARGET= 1
+    WALL_WALKING = 2
+    TRANSITION = 3
 
 
 class TangentBug:
+    MODES = ['Target', 'Wall', 'Transition']
 
-    def __init__(self):
-        self._segments = list()
-        self._ltg = LTG()
-        self._sub_graph = None
-        self._current_position = None
-        self._target = None
+    def __init__(self, target, convex_angle_steps=2):
 
-        self._current_position_vertex = None
-        self._target_vertex = None
-
-        self._lidar_points = list()
-        self._lidar_polar_points = list()
-
-        self._obstacles = list()
-        self._min_r = 10000
-
-        self._is_obstacle_on_90_to_135_degrees = False
-        self._is_obstacle_on_45_to_90_degrees = False
-
-        self._vl = PointInfo( 1, 0, 0, 0, True)
-        self._vr = PointInfo( 1, 0, 0, 0, True)
-
-    def set_current_position(self, position: Point):
-        self._current_position = position
-        self._current_position_vertex = TGVertex(position)
-        self._ltg.set_source_vertex(self._current_position_vertex)
-
-    def set_target(self, target: Point):
         self._target = target
-        self._target_vertex = TGVertex(target)
-        self._ltg.set_target_vertex(self._target_vertex)
-
-    def connect_current_position_to_target(self):
-        edge = TGEdge(self._current_position, self._target)
-        self._ltg.add_edge(edge)
-
-    def is_way_blocked(self):
-        return self._is_obstacle_on_90_to_135_degrees and \
-               self._is_obstacle_on_45_to_90_degrees
+        self._mode = self.MODES[0]
+        self.current_pose = None
+        self._wall_mode_data = dict()
+        self._convex_angle_steps = convex_angle_steps
+        self._transition_mode_goal = None
 
 
-    def add_point(self, point: Point, world_frame_point: Point, is_blocked = True):
-            x, y = point.x, point.y
-            r, theta = get_point_in_polar_degrees_coords(x, y)
+    def step(self, curr_pos, full_lidar_scan):
+        """
+        return a valid step (Point) or -1 if the target is not reachable
+        ToDo: change to exception
+        """
 
-            if -45 <= theta <= 0:
-                self._is_obstacle_on_90_to_135_degrees = True
+        sub_graph = self._build_augmented_sub_graph(full_lidar_scan, curr_pos)
+        if self._mode == TangentBugModes.TARGET:
+            step = self._target_step(curr_pos, sub_graph)
+        elif self._mode == TangentBugModes.WALL_WALKING:
+            step = self._wall_step(sub_graph)
+        else:
+            step = self._transition_step(sub_graph)
+        return step
 
-            if 0 <= theta <= 45:
-                self._is_obstacle_on_45_to_90_degrees = True
+    def _target_step(self,curr_pos, sub_graph: AugmentedSubGraph):
+        point, min_distance =  sub_graph.get_closet_point_to_target()
+        local_minima =  curr_pos.distance(self._target) <= min_distance
+        if not local_minima:
+            return point
+        self._enter_wall_mode(sub_graph)
+        return self._wall_step(sub_graph)
 
-            if r < self._min_r:
-                self._min_r = r
+    def _enter_wall_mode(self, sub_graph: AugmentedSubGraph):
+        self._mode = TangentBugModes.WALL_WALKING
 
-            point_info = PointInfo(r, theta, point, world_frame_point, is_blocked)
-            if point_info.theta > self._vr.theta:
-                self._vr = point_info
+        self._wall_mode_data['blocking_obstacle'] = sub_graph.get_blocking_obstacle()
+        self._wall_mode_data['d_min'] = sub_graph.calculate_d_min()
+        self._wall_mode_data['direction'] = sub_graph.find_following_direction()
+        self._start_point = self.current_pose.location
 
-            if point_info.theta < self._vl.theta:
-                self._vl = point_info
+    def _wall_step(self, sub_graph: AugmentedSubGraph):
+        blocking_obstacle = sub_graph.get_blocking_obstacle()
+        self._wall_mode_data['d_min'] = sub_graph.calculate_d_min()
+        if sub_graph.g2_is_empty():
+            return self._next_boundary_following_or_exit(blocking_obstacle)
+        self._enter_transition_mode()
+        return self._transition_step(sub_graph)
 
-            self._lidar_polar_points.append(PointInfo(r, theta, point, world_frame_point, is_blocked))
+    def _transition_step(self, sub_graph: AugmentedSubGraph):
+        pass
 
-    def get_vr(self):
-        return self._vr.point_world_frame
+    def _build_obstacles(self, full_lidar_scan, threshold=0.1):
+        output = list()
+        second_derivative = np.gradient(full_lidar_scan)
+        abs_second_derivative = np.fabs(second_derivative)
+        discontinuities = np.where(abs_second_derivative > threshold, 1, 0)
+        first_endpoint_r_index = None
+        for i in range(len(full_lidar_scan)):
+            if discontinuities[i] == 1:
+                if first_endpoint_r_index is None:
+                    first_endpoint_r_index = full_lidar_scan[i], i
+                else:
+                    first_endpoint_real_xy = self._calculate_real_world_coordinates(first_endpoint_r_index)
+                    second_endpoint_real_xy = self._calculate_real_world_coordinates(full_lidar_scan[i], i)
+                    output.append(ThinWallObstacle(first_endpoint_real_xy, second_endpoint_real_xy))
+                    first_endpoint_r_index = None
+        return output
 
-    def get_vl(self):
-        return self._vl.point_world_frame
+    def _enter_transition_mode(self, exit_vertex):
+        self._mode = self.MODES[2]
+        pass
 
-    def get_closest_endpoint_to_target(self,curr_poss: Point):
+    def _next_boundary_following_or_exit(self, blocking_obstacle):
+        raise NotImplementedError("handle convex vertex")
+        pass
 
-        dx_vr = curr_poss.distance(self._vr.point_world_frame)
-        dh_vr = self._vr.point_world_frame.distance(self._target_vertex.point())
-        d_vr = dx_vr + dh_vr
+    def _add_vertices(self, graph, obstacles, curr_pos):
+        v_start = TGVertex(curr_pos, "START")
+        graph.add_vertex(v_start)
 
-        dx_vl = curr_poss.distance(self._vl.point_world_frame)
-        dh_vl = self._vl.point_world_frame.distance(self._target_vertex.point())
-        d_vl = dx_vl + dh_vl
+        v_T = TGVertex(self._target, "TARGET")
+        graph.add_vertex(v_T)
 
-        if d_vl < d_vr:
-            return self._vl.point_world_frame, "VL"
-        return self._vr.point_world_frame, "VR"
+        for obs in obstacles:
+            v1 = TGVertex(obs._first_endpoint)
+            v2 = TGVertex(obs._second_endpoint)
 
-    def get_num_of_points(self):
-        return len(self._lidar_polar_points)
+            graph.add_vertex(v1)
+            graph.add_vertex(v2)
 
-    def get_min_r_distance(self):
-        return self._min_r
+        graph.remove_duplicate_vertices()
+        graph.try_to_add_T_node(curr_pos, self._target)
 
-    def _split_to_segments(self):
+    def _add_start_edges(self, graph: AugmentedSubGraph):
+        vertices = graph.get_vertices()
+        start_vertex = graph.get_start()
+        target_vertex = graph.get_target()
+        start_to_target_distance = start_vertex.distance(target_vertex)
 
-        last_blocked_state = None
-        segment = None
+        for v in vertices:
+            if v.vtype == "INNER" or v.vtype == "T_NODE":
+                if v.distance(target_vertex) < start_to_target_distance: # admisible vertex
+                    v.is_admissible = True
+                edge = TGEdge(start_vertex, v)
+                graph.add_edge(edge)
+                start_vertex.add_edge(edge)
+                v.add_edge(edge)
 
-        for point_info in self._lidar_polar_points:
-            if not -45 <=point_info.theta <=45:
-                continue
-            if last_blocked_state != point_info.is_blocked:
-                last_blocked_state = point_info.is_blocked
-                segment = TGSegment(point_info.is_blocked)
-                self._segments.append(segment)
+    def is_line_intersects_with_obstacles(self, line: LineString, obstacles):
 
-            segment.add_point(point_info)
+        for obs in obstacles:
+            if obs.intersect(line):
+                return True
+        return  False
 
-    def _build_obstacles(self):
-        self._split_to_segments()
+    def _try_to_update_status(self, graph : AugmentedSubGraph,vertex: TGVertex, handled_list:List[TGVertex], obstacles):
 
-    def _get_endpoints_vertices(self, segment: TGSegment):
-        p1, p2 = segment.get_endpoints()
-        v1 = TGVertex(p1)
-        v2 = TGVertex(p2)
-        return v1, v2
+        min_distance = np.float(np.inf)
+        closet_relevant_vertex = None
+        for hv in handled_list:
+            line = LineString(hv.point(), vertex.point())
+            if not self.is_line_intersects_with_obstacles(line, obstacles):
+                distance_to_hv = vertex.distance(hv)
+                total_distance = distance_to_hv + hv.get_distance_to_target()
+                if total_distance < min_distance:
+                    min_distance = total_distance
+                    closet_relevant_vertex = hv
 
-    def build_ltg(self):
-        assert self._target_vertex
-        assert self._current_position
+        if closet_relevant_vertex is not None:
+            edge = TGEdge(vertex, self._target, "VIRTUAL_EDGE", min_distance)
+            vertex.set_status(True, min_distance)
+            graph.add_edge(edge)
+            return True
+        return False
 
-        self._lidar_polar_points.sort()
-        self._split_to_segments()
-        for segment in self._segments:
-            v1, v2 = self._get_endpoints_vertices(segment)
-            edge1 = TGEdge(v1, self._target_vertex)
-            edge2 = TGEdge(v2, self._target_vertex)
-            v1.add_edge(edge1)
-            v2.add_edge(edge2)
-            self._ltg.add_vertex(v1)
-            self._ltg.add_vertex(v2)
-            self._ltg.add_edge(edge1)
-            self._ltg.add_edge(edge2)
+    def _add_virtual_edges_to_target(self, graph: AugmentedSubGraph, obstacles):
+        vertices = graph.get_vertices()
+        target_vertex = graph.get_target()
+        inner_vertices = [v for v in vertices if v.vtype == "ÏNNER" and v.is_admissible]
+        handled_list = list()
 
-    def build_sub_graph(self):
-        self._sub_graph = SubGraph(self._ltg)
-        return self._sub_graph
+        for v in inner_vertices:
+            if not self.is_line_intersects_with_obstacles(LineString[v.point(), target_vertex.point()]):
+                edge = TGEdge(v, target_vertex,"VIRTUAL_EDGE") # there is direct line
+                v.set_status(True, edge.distance)
+                graph.add_edge(edge)
+                handled_list.append(v)
 
-    def clear(self):
-        self._lidar_polar_points.clear()
-        self._lidar_points.clear()
-        self._segments.clear()
+        while len(handled_list) < len(inner_vertices):
+            for v in inner_vertices:
+                if not v.get_status():
+                    if self._try_to_update_status(graph, v, handled_list, obstacles):
+                        handled_list.append(v)
 
-        self._segments = list()
-        self._ltg = LTG()
-        self._sub_graph = None
-        self._current_position = None
-        self._target = None
+    def _build_augmented_sub_graph(self, full_lidar_scan, curr_pos):
+        obstacles = self._build_obstacles(full_lidar_scan) # list of thin wall obstacles
+        graph = AugmentedSubGraph(curr_pos, self._target)
+        self._add_vertices(graph, obstacles, curr_pos)
+        self._add_start_edges(graph)
+        self._add_virtual_edges_to_target(graph, obstacles)
+        return graph
 
-        self._current_position_vertex = None
-        self._target_vertex = None
 
-        self._obstacles = list()
-        self._min_r = 10000
 
-        self._is_obstacle_on_90_to_135_degrees = False
-        self._is_obstacle_on_45_to_90_degrees = False
+
 
