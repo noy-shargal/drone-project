@@ -10,6 +10,7 @@ from ASTARPathPlanner import ASTARPathPlanner
 from Config import config
 from apf.APFPathPlanner import APFPathPlanner
 from apf.Countdowner import Countdowner
+from utils import getPointInRealWorldCoords
 
 
 @unique
@@ -93,11 +94,12 @@ class Agent:
                         client.getPose().pos.y_m) + ") ")
                     break
 
-            sensing_obstacle, points_list, _ = client.senseObstacle()
+            sensing_obstacle, points_list, pose = client.senseObstacle()
 
             if sensing_obstacle:
                 point = Point(points_list[0], points_list[1])
-                if not self._obs.is_point_in_obstacles_map(point):  # new obstacle
+                world_point = getPointInRealWorldCoords(point.x, point.y, pose)
+                if not self._obs.is_point_in_obstacles_map(Point(*world_point)):  # new obstacle
                     self._algo = AlgoState.APF
                     print("APF MODE")
                     tuple_goal = (goal.x_m, goal.y_m)
