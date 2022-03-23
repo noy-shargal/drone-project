@@ -24,7 +24,7 @@ class Agent:
     def __init__(self):
 
         self._algo = AlgoState.ASTAR
-
+        self._apf_path_planner = None
         self._astar_path_planner = ASTARPathPlanner()
         self._client = MyDroneClient()
         self._path = self._astar_path_planner.get_path()
@@ -102,6 +102,8 @@ class Agent:
                 if not self._obs.is_point_in_obstacles_map(Point(*world_point)):  # new obstacle
                     self._algo = AlgoState.APF
                     print("APF MODE")
+                    cur_pos = client.getPose()
+                    client.flyToPosition(cur_pos.pos.x_m, cur_pos.pos.y_m, cur_pos.pos.z_m, 0.1)
                     tuple_goal = (goal.x_m, goal.y_m)
                     self.apf_fly_to_destination(tuple_goal)
                     self._algo = AlgoState.ASTAR
@@ -112,22 +114,23 @@ class Agent:
     def apf_fly_to_destination(self, goal):
         cur_pose = self._client.getPose()
         start = (cur_pose.pos.x_m, cur_pose.pos.y_m)
-        apf_path_planner = APFPathPlanner(start, goal)
+        self._apf_path_planner = APFPathPlanner(start, goal)
         curr_position = start
         self._lidar_points_counter.start()
-        while not apf_path_planner.reached_goal(curr_position):
-            next_position = apf_path_planner.next_step(curr_position, self._lidar_points)
+        while not self._apf_path_planner.reached_goal(curr_position):
+            next_position = self._apf_path_planner.next_step(curr_position, self._lidar_points)
             self._clear_lidar_points()
-            random_next_position = (
-                next_position[0] + 0.5 * random.random() - 0.25, next_position[1] + 0.5 * random.random() - 0.25)
-            self._client.flyToPosition(random_next_position[0], random_next_position[1], config.height,
+            self._client.flyToPosition(next_position[0][0], next_position[1], config.height,
                                        config.apf_velocity)
             print("fly to position")
             print(next_position[0], next_position[1])
             self._collect_lidar_points()
-            while not apf_path_planner.reached_location(curr_position, next_position):
+            while not self._apf_path_planner.reached_location(curr_position, next_position):
                 curr_position = self._client.getPose().pos.x_m, self._client.getPose().pos.y_m
                 self._collect_lidar_points()
+                if self._apf_path_planner.reached_goal(curr_position):
+                    print("APF REACHED LOCAL GOAL")
+                    break
             curr_position = next_position
 
     def _collect_lidar_points(self):

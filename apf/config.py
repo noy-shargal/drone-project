@@ -70,16 +70,16 @@ class FiniteRepulsionConfig:
 finite_repulsion_config1 = FiniteRepulsionConfig(start_position=(-1200.0, -1200.0),
                                                  end_position=(0.0, -600.0),
                                                  height=-30,
-                                                 q_star=30,
+                                                 q_star=12.5,
                                                  s=25,
                                                  k=0.025,
                                                  d=30.0,
-                                                 grid_size=0.5,
+                                                 grid_size=0.25,
                                                  velocity=3.0,
                                                  data_type=np.float32,
-                                                 unknown_amplification=25,
+                                                 unknown_amplification=70,
                                                  use_obstacles_map=False,
                                                  reach_dist=3.5,
                                                  window_size=13,
-                                                 eta=4)
+                                                 eta=7)
 current_config = finite_repulsion_config1

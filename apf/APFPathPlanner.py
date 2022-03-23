@@ -2,6 +2,7 @@ import math
 from typing import Tuple, Set
 from copy import deepcopy
 import numpy
+import numpy as np
 from shapely.geometry import Point
 
 from apf.ObstaclesCSVReader import ObstaclesCSVReader
@@ -19,8 +20,8 @@ class APFPathPlanner:
         self._start = start_position
 
         self._grid_unit_size = current_config.grid_size
-        min_x, max_x, min_y, max_y = self._obstacles_reader.get_boundaries()
-
+        # min_x, max_x, min_y, max_y = self._obstacles_reader.get_boundaries()
+        min_x, max_x, min_y, max_y = self.calculate_boundaries(start_position, end_position)
         self._obstacles_map = ObstacleMap(self._polygons_map, min_x, max_x, min_y, max_y)
         self._repulsion_map = RepulsionMap(min_x, max_x, min_y, max_y, self._polygons_map)
         self._attraction_map = AttractionMap(start_position, end_position, min_x, max_x, min_y, max_y)
@@ -169,3 +170,11 @@ class APFPathPlanner:
 
         window_size -= 2
         return max(3, window_size)
+
+    def calculate_boundaries(self, start_position, end_position):
+        padding = 60
+        min_x = np.min((start_position[0], end_position[0])) - padding
+        min_y = np.min((start_position[1], end_position[1])) - padding
+        max_x = np.max((start_position[0], end_position[0])) + padding
+        max_y = np.max((start_position[1], end_position[1])) + padding
+        return min_x, max_x, min_y, max_y
