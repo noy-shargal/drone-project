@@ -2,7 +2,7 @@ from shapely.geometry import Point
 
 from Dijkstra import Dijkstra
 from Obstacles import Obstacles
-from TangentBug import TangentBug
+from BasicTangentBug import BasicTangentBug
 from enum import Enum, unique
 
 from Config import config
@@ -21,7 +21,7 @@ class PathPlanner:
 
         self._algo_state =  AlgoState.ASTAR
         self._astar = Dijkstra()
-        self._tangent_bug = TangentBug()
+        self._tangent_bug = BasicTangentBug()
 
         self._start_point = config.source
         self._destination_point = config.destination

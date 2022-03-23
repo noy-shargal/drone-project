@@ -1,3 +1,4 @@
+import math
 from typing import List
 from Obstacle import ThinWallObstacle
 import numpy as np
@@ -92,14 +93,14 @@ class AugmentedSubGraph:
         return self._vertices
 
     def _get_t_node_position(self, curr_position: Point, target: Point):
-        theta = np.atan2(target.y - curr_position.y, target.x - curr_position.x)
+        theta = math.atan2(target.y - curr_position.y, target.x - curr_position.x)
         r = np.min(self.LIDAR_RANGE, curr_position.distance(target))
         delta_x = r * np.cos(theta)
         delta_y = r * np.sin(theta)
         pos = Point(curr_position.x + delta_x, curr_position.y + delta_y)
         return pos
 
-    def try_to_add_T_node(self, curr_pos: Point, target, obstacles):
+    def try_to_add_T_node(self, curr_pos: Point, target: Point, obstacles):
         line_to_target = LineString([curr_pos, target])
         for obs in obstacles:
             obstacle_line = LineString([obs._first_endpoint, obs._second_endpoint])
@@ -114,13 +115,13 @@ class AugmentedSubGraph:
         self._vertices.append(vertex)
 
         if vertex.vtype == "START":
-            self._start_vertex = vertex
+            self._source_vertex = vertex
 
         if vertex.vtype == "TARGET":
             self._target_vertex = vertex
 
     def get_start(self):
-        return self._start_vertex
+        return self._source_vertex
 
     def get_target(self):
         return self._target_vertex

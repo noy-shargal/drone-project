@@ -7,6 +7,7 @@ from shapely.geometry import LineString, Point
 
 from LTG import AugmentedSubGraph, TGEdge, TGVertex
 from Obstacle import ThinWallObstacle
+from utils import getPointInRealWorldCoords
 
 
 class TangentBugModes(Enum):
@@ -108,21 +109,22 @@ class TangentBug:
         self._v_leave, _ = sub_graph.get_closet_point_to_target()
 
     def _add_vertices(self, graph, obstacles, curr_pos):
-        v_start = TGVertex(curr_pos, "START")
+        start_point = Point(curr_pos.x_m, curr_pos.y_m)
+        v_start = TGVertex(start_point, False,"START")
         graph.add_vertex(v_start)
 
-        v_T = TGVertex(self._target, "TARGET")
+        v_T = TGVertex(self._target, False,"TARGET")
         graph.add_vertex(v_T)
 
         for obs in obstacles:
-            v1 = TGVertex(obs._first_endpoint)
-            v2 = TGVertex(obs._second_endpoint)
+            v1 = TGVertex(obs._first_endpoint, True)
+            v2 = TGVertex(obs._second_endpoint, True)
 
             graph.add_vertex(v1)
             graph.add_vertex(v2)
 
         graph.remove_duplicate_vertices()
-        graph.try_to_add_T_node(curr_pos, self._target)
+        graph.try_to_add_T_node(start_point, self._target, obstacles)
 
     def _add_start_edges(self, graph: AugmentedSubGraph):
         vertices = graph.get_vertices()
@@ -141,7 +143,7 @@ class TangentBug:
 
     def is_line_intersects_with_obstacles(self, line: LineString, obstacles):
         for obs in obstacles:
-            if obs.intersect(line):
+            if obs.intersects_line(line):
                 return True
         return False
 
@@ -169,7 +171,12 @@ class TangentBug:
     def _add_virtual_edges_to_target(self, graph: AugmentedSubGraph, obstacles):
         vertices = graph.get_vertices()
         target_vertex = graph.get_target()
-        inner_vertices = [v for v in vertices if v.vtype == "ÏNNER" and v.is_admissible]
+        inner_vertices = list()
+
+        for v in vertices:
+            if v.vtype == "INNER" and v.is_admissible:
+                inner_vertices.append(v)
+
         handled_list = list()
 
         for v in inner_vertices:
@@ -188,7 +195,8 @@ class TangentBug:
     def _build_augmented_sub_graph(self, full_lidar_scan, curr_pose):
         curr_pos = curr_pose.pos
         self.obstacles = self._build_obstacles(full_lidar_scan, curr_pose)  # list of thin wall obstacles
-        graph = AugmentedSubGraph(curr_pos, self._target)
+        curr_point = Point(curr_pos.x_m, curr_pos.y_m)
+        graph = AugmentedSubGraph(curr_point, self._target)
         self._add_vertices(graph, self.obstacles, curr_pos)
         self._add_start_edges(graph)
         self._add_virtual_edges_to_target(graph, self.obstacles)
@@ -213,8 +221,13 @@ class TangentBug:
 
     @staticmethod
     def _calculate_world_coordinates(r, theta, current_pose):
-        theta -= 90
-        x = current_pose.pos.x_m + r * np.cos(current_pose.orientation.z_rad - theta*math.pi/180)
-        y = current_pose.pos.y_m + r * np.sin(current_pose.orientation.z_rad - theta*math.pi/180)
-        return Point(x, y)
+        real_theta = theta - 90
+        real_theta = real_theta * math.pi /180
+
+        x_drone = r * np.cos(real_theta)
+        y_drone = r * np.sin(real_theta)
+
+        xw, yw = getPointInRealWorldCoords(x_drone, y_drone, current_pose)
+
+        return Point(xw, yw)
 

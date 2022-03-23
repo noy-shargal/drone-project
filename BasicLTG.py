@@ -4,7 +4,7 @@ from shapely.geometry import Point
 
 
 
-class TGEdge:
+class BasicTGEdge:
     def __init__(self, vertex1, vertex2):
         self._vertex1 = vertex1
         self._vertex2 = vertex2
@@ -13,7 +13,7 @@ class TGEdge:
         return self._vertex1.distance(self._vertex2)
 
 
-class TGVertex:
+class BasicTGVertex:
 
 
     def __init__(self,point: Point, vtype = "INNER"):
@@ -40,7 +40,7 @@ class TGVertex:
 
 
 
-class LTG:
+class BasicLTG:
 
     def __init__(self):
         self._edges = list()
@@ -51,39 +51,39 @@ class LTG:
     def add_edges(self, edges: List):
         self._edges.extend(edges)
 
-    def add_edge(self, edge: TGEdge):
+    def add_edge(self, edge: BasicTGEdge):
         self._edges.append(edge)
 
     def add_vertices(self, vertices: List):
         self._vertices.extend(vertices)
 
-    def add_vertex(self, vertex: TGVertex):
+    def add_vertex(self, vertex: BasicTGVertex):
         self._vertices.append(vertex)
 
-    def set_source_vertex(self, source: TGVertex):
+    def set_source_vertex(self, source: BasicTGVertex):
         self._source_vertex = source
         self._source_vertex.vtype = "SOURCE"
         self.add_vertex(source)
 
-    def set_target_vertex(self, target: TGVertex):
+    def set_target_vertex(self, target: BasicTGVertex):
         self._target_vertex = target
         self._target_vertex.vtype = "TARGET"
         self.add_vertex(target)
 
-    def get_source(self) -> TGVertex:
+    def get_source(self) -> BasicTGVertex:
         return self._source_vertex
 
-    def get_target(self) -> TGVertex:
+    def get_target(self) -> BasicTGVertex:
         return self._target_vertex
 
     def get_vertices(self) -> List:
         return self._vertices
 
 
-class SubGraph(LTG):
+class BasicSubGraph(BasicLTG):
 
-    def  __init__(self, ltg: LTG):
-        super(SubGraph, self).__init__()
+    def  __init__(self, ltg: BasicLTG):
+        super(BasicSubGraph, self).__init__()
         self._ltg = ltg
         self.source_target_distance = None
         self._closet_vertex_to_target_distance = 10000
@@ -91,10 +91,10 @@ class SubGraph(LTG):
         source = ltg.get_source()
         target = ltg.get_target()
 
-        source_vertex = TGVertex(source.point(), "SOURCE")
+        source_vertex = BasicTGVertex(source.point(), "SOURCE")
         self.set_source_vertex(source_vertex)
 
-        target_vertex = TGVertex(target.point(), "TARGET")
+        target_vertex = BasicTGVertex(target.point(), "TARGET")
         self.set_target_vertex(target_vertex)
 
         vertices = ltg.get_vertices()
@@ -104,7 +104,7 @@ class SubGraph(LTG):
         for vertex in vertices:
            if vertex.vtype == "INNER":
                if vertex.point().distance( self._target_vertex.point()) < self.source_target_distance: # then admisible Vertex
-                sub_graph_vertex = TGVertex( vertex.point())
+                sub_graph_vertex = BasicTGVertex( vertex.point())
                 self.add_vertex(sub_graph_vertex)
 
         # edges
@@ -115,14 +115,14 @@ class SubGraph(LTG):
         for vertex in self._vertices:
             # connecting source to vertex
             if vertex.vtype != "SOURCE":
-                edge = TGEdge(self._source_vertex, vertex)
+                edge = BasicTGEdge(self._source_vertex, vertex)
                 self.add_edge(edge)
                 vertex.add_edge(edge)
                 self._source_vertex.add_edge(edge)
 
             # connecting vertex to target
             if vertex.vtype != "TARGET" and vertex.vtype != "SOURCE":
-                edge = TGEdge(vertex, self._target_vertex)
+                edge = BasicTGEdge(vertex, self._target_vertex)
                 self.add_edge(edge)
                 vertex.add_edge(edge)
                 self._target_vertex.add_edge(edge)
@@ -142,6 +142,7 @@ class SubGraph(LTG):
         pass
 
     def get_closet_point_to_target(self):
+        assert self._closet_vertex_to_target is not None
         return self._closet_vertex_to_target.point()
 
     def is_source_local_minima(self):

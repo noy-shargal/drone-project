@@ -1,6 +1,13 @@
 import math
 
 from shapely.geometry import Point
+import numpy as np
+
+def getPointInRealWorldCoords( x_drone, y_drone, pose):
+    theta = pose.orientation.z_rad
+    x_world = x_drone * np.cos(theta) - y_drone * np.sin(theta) + pose.pos.x_m
+    y_world = x_drone * np.sin(theta) + y_drone * np.cos(theta) + pose.pos.y_m
+    return x_world, y_world
 
 
 def get_point_in_polar_coords(rel_x, rel_y):

@@ -3,7 +3,7 @@ from utils import get_point_in_polar_degrees_coords
 from shapely.geometry import Point
 
 
-from LTG import LTG, TGEdge, TGVertex, SubGraph
+from BasicLTG import BasicLTG, BasicTGEdge, BasicTGVertex, BasicSubGraph
 
 
 class PointInfo:
@@ -55,7 +55,7 @@ class BasicTangentBug:
 
     def __init__(self):
         self._segments = list()
-        self._ltg = LTG()
+        self._ltg = BasicLTG()
         self._sub_graph = None
         self._current_position = None
         self._target = None
@@ -77,16 +77,16 @@ class BasicTangentBug:
 
     def set_current_position(self, position: Point):
         self._current_position = position
-        self._current_position_vertex = TGVertex(position)
+        self._current_position_vertex = BasicTGVertex(position)
         self._ltg.set_source_vertex(self._current_position_vertex)
 
     def set_target(self, target: Point):
         self._target = target
-        self._target_vertex = TGVertex(target)
+        self._target_vertex = BasicTGVertex(target)
         self._ltg.set_target_vertex(self._target_vertex)
 
     def connect_current_position_to_target(self):
-        edge = TGEdge(self._current_position, self._target)
+        edge = BasicTGEdge(self._current_position, self._target)
         self._ltg.add_edge(edge)
 
     def is_way_blocked(self):
@@ -98,20 +98,20 @@ class BasicTangentBug:
             x, y = point.x, point.y
             r, theta = get_point_in_polar_degrees_coords(x, y)
 
-            if -45 <= theta <= 0:
+            if 0 <= theta <= 20:
                 self._is_obstacle_on_90_to_135_degrees = True
 
-            if 0 <= theta <= 45:
+            if -20 <= theta <= 0:
                 self._is_obstacle_on_45_to_90_degrees = True
 
             if r < self._min_r:
                 self._min_r = r
 
             point_info = PointInfo(r, theta, point, world_frame_point, is_blocked)
-            if point_info.theta > self._vr.theta:
+            if point_info.theta < self._vr.theta:
                 self._vr = point_info
 
-            if point_info.theta < self._vl.theta:
+            if point_info.theta > self._vl.theta:
                 self._vl = point_info
 
             self._lidar_polar_points.append(PointInfo(r, theta, point, world_frame_point, is_blocked))
@@ -148,7 +148,7 @@ class BasicTangentBug:
         segment = None
 
         for point_info in self._lidar_polar_points:
-            if not -45 <=point_info.theta <=45:
+            if not -20 <=point_info.theta <=20:
                 continue
             if last_blocked_state != point_info.is_blocked:
                 last_blocked_state = point_info.is_blocked
@@ -162,8 +162,8 @@ class BasicTangentBug:
 
     def _get_endpoints_vertices(self, segment: TGSegment):
         p1, p2 = segment.get_endpoints()
-        v1 = TGVertex(p1)
-        v2 = TGVertex(p2)
+        v1 = BasicTGVertex(p1)
+        v2 = BasicTGVertex(p2)
         return v1, v2
 
     def build_ltg(self):
@@ -174,8 +174,8 @@ class BasicTangentBug:
         self._split_to_segments()
         for segment in self._segments:
             v1, v2 = self._get_endpoints_vertices(segment)
-            edge1 = TGEdge(v1, self._target_vertex)
-            edge2 = TGEdge(v2, self._target_vertex)
+            edge1 = BasicTGEdge(v1, self._target_vertex)
+            edge2 = BasicTGEdge(v2, self._target_vertex)
             v1.add_edge(edge1)
             v2.add_edge(edge2)
             self._ltg.add_vertex(v1)
@@ -184,7 +184,7 @@ class BasicTangentBug:
             self._ltg.add_edge(edge2)
 
     def build_sub_graph(self):
-        self._sub_graph = SubGraph(self._ltg)
+        self._sub_graph = BasicSubGraph(self._ltg)
         return self._sub_graph
 
     def clear(self):
@@ -193,7 +193,7 @@ class BasicTangentBug:
         self._segments.clear()
 
         self._segments = list()
-        self._ltg = LTG()
+        self._ltg = BasicLTG()
         self._sub_graph = None
         self._current_position = None
         self._target = None
