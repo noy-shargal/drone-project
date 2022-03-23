@@ -5,16 +5,12 @@ from Obstacles import Obstacles
 from enum import Enum, unique
 from Config import config
 
-@unique
-class AlgoState(Enum):
-    ASTAR = 1
-    APF = 2
 
-class PathPlanner:
+
+class ASTARPathPlanner:
 
     def __init__(self):
 
-        self._algo_state =  AlgoState.ASTAR
         self._astar = Dijkstra()
         self._start_point = config.source
         self._destination_point = config.destination
@@ -23,6 +19,9 @@ class PathPlanner:
         self._obs.set_destination_point(config.destination)
         self._load_map()
         self._prepare_astar_path()
+
+    def get_obstacles_object(self):
+        return self._obs
 
     def _load_map(self):
 

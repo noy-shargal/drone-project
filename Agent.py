@@ -1,25 +1,35 @@
 import math
+import random
 import time
+from enum import Enum, unique
 
 from shapely.geometry import Point
-
 from DroneTypes import Position
 from MyDroneClient import MyDroneClient
-from PathPlanner import PathPlanner
-from TangentBug import TangentBug
+from ASTARPathPlanner import ASTARPathPlanner
 from Config  import config
-from utils import get_parallelogram_missing_point
+from apf.APFPathPlanner import APFPathPlanner
+from apf.Countdowner import Countdowner
 
+
+@unique
+class AlgoState(Enum):
+    ASTAR = 1
+    APF = 2
 
 class Agent:
 
     def __init__(self):
-        self._path_planner = PathPlanner()
-        self._client = MyDroneClient()
 
-        # self._lidar_points_counter = Countdowner(5.0)
-        # self._lidar_points = list()
-        self._path = self._path_planner.get_path()
+        self._algo = AlgoState.ASTAR
+
+        self._astar_path_planner = ASTARPathPlanner()
+        self._apf_path_planner = APFPathPlanner()
+        self._client = MyDroneClient()
+        self._path = self._astar_path_planner.get_path()
+        self._obs = self._astar_path_planner.get_obstacles_object()
+        self._lidar_points_counter = Countdowner(5.0)
+        self._lidar_points = list()
 
     def connect_and_spawn(self):
         self._client.reset()
@@ -77,14 +87,58 @@ class Agent:
                 point_num += 1
                 need_fly_command = True
                 pos = client.getPose().pos
-                real_path.append(self.position_to_point(pos))
+
                 if point_num == len(self._path):
                     print("Reached destination at (" + str(client.getPose().pos.x_m) + ", " + str(
                         client.getPose().pos.y_m) + ") ")
                     break
 
-            # sensing_obstacle, points_list, pose = client.senseObstacle()
+            sensing_obstacle, points_list = client.senseObstacle()
+
+            if sensing_obstacle:
+                point = Point(points_list[0], points_list[1])
+                if not self._obs.is_point_in_obstacles_map(point): # new obstacle
+                    self._algo = AlgoState.APF
+                    APFPathPlanner
             # if sensing_obstacle:
+
+    def apf_fly_to_destination(self, curr_pos:Point, goal:Point):
+        curr_position = self._start
+        self._lidar_points_counter.start()
+        while not self._apf_path_planner.reached_goal(curr_position):
+            next_position = self._apf_path_planner.next_step(curr_position, self._lidar_points)
+            self._clear_lidar_points()
+            random_next_position = (
+            next_position[0] + 0.5 * random.random() - 0.25, next_position[1] + 0.5 * random.random() - 0.25)
+            self._client.flyToPosition(random_next_position[0], random_next_position[1], config.height, config.apf_velocity)
+            print("fly to position")
+            print(next_position[0], next_position[1])
+            self._collect_lidar_points()
+            while not self._apf_path_planner.reached_location(curr_position, next_position):
+                curr_position = self._client.getPose().pos.x_m, self._client.getPose().pos.y_m
+                self._collect_lidar_points()
+            curr_position = next_position
+
+    def _collect_lidar_points(self):
+        countdowner = Countdowner(0.8)
+        countdowner.start()
+        while countdowner.running():
+            sensed_obstacle, lidar_data, pose = self.client.senseObstacle()
+            if sensed_obstacle:
+                parsed_lidar_data = self.client.parse_lidar_data(lidar_data)
+                for lidar_sample in parsed_lidar_data:
+                    x, y = self.client.getPointInRealWorldCoords(*lidar_sample, pose)
+                    if self._apf_path_planner.new_obstacle((x, y)):
+                        point = (round(x, 1), round(y, 1))
+                        if not point in self._lidar_points:
+                            print(point)
+                            self._lidar_points.append(point)
+
+    def _clear_lidar_points(self):
+        if not self._lidar_points_counter.running():
+            self._lidar_points = self._lidar_points[-20:]
+            self._lidar_points_counter.start()
+
 
     @property
     def client(self):
