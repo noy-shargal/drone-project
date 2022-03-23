@@ -11,7 +11,7 @@ from config import current_config
 
 class APFPathPlanner:
 
-    def __init__(self, start_position:Point, end_position: Point):
+    def __init__(self, start_position, end_position):
         self._obstacles_reader = ObstaclesCSVReader()
 
         self._polygons_map = self._obstacles_reader.polygons_map

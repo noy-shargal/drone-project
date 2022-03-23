@@ -7,7 +7,7 @@ from shapely.geometry import Point
 from DroneTypes import Position
 from MyDroneClient import MyDroneClient
 from ASTARPathPlanner import ASTARPathPlanner
-from Config  import config
+from Config import config
 from apf.APFPathPlanner import APFPathPlanner
 from apf.Countdowner import Countdowner
 
@@ -17,6 +17,7 @@ class AlgoState(Enum):
     ASTAR = 1
     APF = 2
 
+
 class Agent:
 
     def __init__(self):
@@ -24,7 +25,6 @@ class Agent:
         self._algo = AlgoState.ASTAR
 
         self._astar_path_planner = ASTARPathPlanner()
-        self._apf_path_planner = APFPathPlanner()
         self._client = MyDroneClient()
         self._path = self._astar_path_planner.get_path()
         self._obs = self._astar_path_planner.get_obstacles_object()
@@ -36,7 +36,7 @@ class Agent:
         print("Connecting.....")
         self._client.connect()
         time.sleep(2)
-        self._client.setAtPosition(config.source.x, config.source.y , config.height)
+        self._client.setAtPosition(config.source.x, config.source.y, config.height)
         time.sleep(2)
         print(self._client.isConnected())
         time.sleep(2)
@@ -97,24 +97,33 @@ class Agent:
 
             if sensing_obstacle:
                 point = Point(points_list[0], points_list[1])
-                if not self._obs.is_point_in_obstacles_map(point): # new obstacle
+                if not self._obs.is_point_in_obstacles_map(point):  # new obstacle
                     self._algo = AlgoState.APF
-                    APFPathPlanner
-            # if sensing_obstacle:
+                    print("APF MODE")
+                    tuple_goal = (goal.x_m, goal.y_m)
+                    self.apf_fly_to_destination(tuple_goal)
+                    self._algo = AlgoState.ASTAR
+                    print("ASTAR MODE")
 
-    def apf_fly_to_destination(self, curr_pos:Point, goal:Point):
-        curr_position = self._start
+
+
+    def apf_fly_to_destination(self, goal):
+        cur_pose = self._client.getPose()
+        start = (cur_pose.pos.x_m, cur_pose.pos.y_m)
+        apf_path_planner = APFPathPlanner(start, goal)
+        curr_position = start
         self._lidar_points_counter.start()
-        while not self._apf_path_planner.reached_goal(curr_position):
-            next_position = self._apf_path_planner.next_step(curr_position, self._lidar_points)
+        while not apf_path_planner.reached_goal(curr_position):
+            next_position = apf_path_planner.next_step(curr_position, self._lidar_points)
             self._clear_lidar_points()
             random_next_position = (
-            next_position[0] + 0.5 * random.random() - 0.25, next_position[1] + 0.5 * random.random() - 0.25)
-            self._client.flyToPosition(random_next_position[0], random_next_position[1], config.height, config.apf_velocity)
+                next_position[0] + 0.5 * random.random() - 0.25, next_position[1] + 0.5 * random.random() - 0.25)
+            self._client.flyToPosition(random_next_position[0], random_next_position[1], config.height,
+                                       config.apf_velocity)
             print("fly to position")
             print(next_position[0], next_position[1])
             self._collect_lidar_points()
-            while not self._apf_path_planner.reached_location(curr_position, next_position):
+            while not apf_path_planner.reached_location(curr_position, next_position):
                 curr_position = self._client.getPose().pos.x_m, self._client.getPose().pos.y_m
                 self._collect_lidar_points()
             curr_position = next_position
@@ -139,9 +148,6 @@ class Agent:
             self._lidar_points = self._lidar_points[-20:]
             self._lidar_points_counter.start()
 
-
     @property
     def client(self):
         return self._client
-
-
