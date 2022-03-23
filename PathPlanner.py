@@ -21,7 +21,7 @@ class PathPlanner:
 
         self._algo_state =  AlgoState.ASTAR
         self._astar = Dijkstra()
-        self._tangent_bug = TangentBug()
+        #self._tangent_bug = TangentBug()
 
         self._start_point = config.source
         self._destination_point = config.destination

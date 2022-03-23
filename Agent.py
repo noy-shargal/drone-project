@@ -38,7 +38,6 @@ class Agent:
         point_num = 1
         need_fly_command = True
         real_path = list()
-        tb = TangentBug()
         client = self._client
 
         while True:
@@ -67,44 +66,44 @@ class Agent:
                         client.getPose().pos.y_m) + ") ")
                     break
 
-            sensing_obstacle, points_list, pose = client.senseObstacle()
-            if sensing_obstacle:
-                # print ("sensed obstacle : "+str(points_list), str(pose))
-                xw, yw = client.getPointInRealWorldCoords(points_list[0], points_list[1], client.getPose())
-                # print("getPointInRealWorldCoords -> ", "("+str(xw) +", "+ str(yw)+ ")")
-                # print ("Drone location : (", str(client.getPose().pos.x_m), ", "+str(client.getPose().pos.y_m)+")")
-                is_known_obs = self._path_planner.is_point_in_obstacles_map()
-
-                if not is_known_obs:
-
-                    tb.add_point(Point(points_list[0], points_list[1]), Point(xw, yw))
-                    if tb.get_num_of_points() > 5 and tb.is_way_blocked():
-                        client.stop()
-
-                        curr_poss = Point(client.getPose().pos.x_m, client.getPose().pos.y_m)
-                        tb.set_current_position(curr_poss)
-                        next_goal = Point(goal.x_m, goal.y_m)
-                        tb.set_target(next_goal)
-                        tb.build_ltg()
-                        sg = tb.build_sub_graph()
-                        closest_point = sg.get_closet_point_to_target()
-                        client.flyToPosition(closest_point.x, closest_point.y, config.height, config.ltf_velocity)
-                        if sg.is_source_local_minima():
-                            print("Reached Local Minima")
-                            point, v_name = tb.get_closest_endpoint_to_target(curr_poss)
-                            vr = tb.get_vr()
-                            vl = tb.get_vl()
-                            par_pnt = get_parallelogram_missing_point(curr_poss, vr, vl, v_name)
-                            client.flyToPosition(par_pnt.x, par_pnt.y, config.height, config.ltf_velocity)
-                        # time.sleep(0.24)
-                        y = 9
-                        tb = TangentBug()
-
-                    print("sensed obstacle : " + str(points_list), str(pose))
-                    print("getPointInRealWorldCoords -> ", "(" + str(xw) + ", " + str(yw) + ")")
-                    print("Drone location : (", str(client.getPose().pos.x_m), ", " + str(client.getPose().pos.y_m),
-                          ", " + str(client.getPose().pos.z_m) + ")")
-                    print("unknown obstacle !")
+            # sensing_obstacle, points_list, pose = client.senseObstacle()
+            # if sensing_obstacle:
+            #     # print ("sensed obstacle : "+str(points_list), str(pose))
+            #     xw, yw = client.getPointInRealWorldCoords(points_list[0], points_list[1], client.getPose())
+            #     # print("getPointInRealWorldCoords -> ", "("+str(xw) +", "+ str(yw)+ ")")
+            #     # print ("Drone location : (", str(client.getPose().pos.x_m), ", "+str(client.getPose().pos.y_m)+")")
+            #     is_known_obs = self._path_planner.is_point_in_obstacles_map()
+            #
+            #     if not is_known_obs:
+            #
+            #         tb.add_point(Point(points_list[0], points_list[1]), Point(xw, yw))
+            #         if tb.get_num_of_points() > 5 and tb.is_way_blocked():
+            #             client.stop()
+            #
+            #             curr_poss = Point(client.getPose().pos.x_m, client.getPose().pos.y_m)
+            #             tb.set_current_position(curr_poss)
+            #             next_goal = Point(goal.x_m, goal.y_m)
+            #             tb.set_target(next_goal)
+            #             tb.build_ltg()
+            #             sg = tb.build_sub_graph()
+            #             closest_point = sg.get_closet_point_to_target()
+            #             client.flyToPosition(closest_point.x, closest_point.y, config.height, config.ltf_velocity)
+            #             if sg.is_source_local_minima():
+            #                 print("Reached Local Minima")
+            #                 point, v_name = tb.get_closest_endpoint_to_target(curr_poss)
+            #                 vr = tb.get_vr()
+            #                 vl = tb.get_vl()
+            #                 par_pnt = get_parallelogram_missing_point(curr_poss, vr, vl, v_name)
+            #                 client.flyToPosition(par_pnt.x, par_pnt.y, config.height, config.ltf_velocity)
+            #             # time.sleep(0.24)
+            #             y = 9
+            #             tb = TangentBug()
+            #
+            #         print("sensed obstacle : " + str(points_list), str(pose))
+            #         print("getPointInRealWorldCoords -> ", "(" + str(xw) + ", " + str(yw) + ")")
+            #         print("Drone location : (", str(client.getPose().pos.x_m), ", " + str(client.getPose().pos.y_m),
+            #               ", " + str(client.getPose().pos.z_m) + ")")
+            #         print("unknown obstacle !")
 
     @property
     def client(self):
