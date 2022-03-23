@@ -47,6 +47,7 @@ class TangentBugAgent:
 
         curr_pos = config.source
         next_step = curr_pos
+        self._client.flyToPosition(curr_pos.x+2, curr_pos.y+2, config.height, 0.01)
         while not self.point_reached_goal_2D(next_step, config.destination):
             full_lidar_scan = self._client.full_lidar_scan()
             curr_pose = self._client.getPose()

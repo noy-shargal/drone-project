@@ -2,7 +2,6 @@ from TangentBugAgent import TangentBugAgent
 
 if __name__ == "__main__":
     drone_agent = TangentBugAgent()
-    drone_agent.connect_and_spawn()
     agent = TangentBugAgent()
     try:
         agent.connect_and_spawn()

@@ -74,14 +74,19 @@ class AugmentedSubGraph:
         self._t_blocking_obstacle = None
         self._blocking_obstacle = None
 
-        self._build_obstacle_vertices()
-        self._add_source_vertex()
-        self._try_to_add_target_vertex()
-
-        self._add_edges()
-
     def remove_duplicate_vertices(self):
-        self._vertices = list(dict.fromkeys(self._vertices))
+        unique_vertices = list()
+        for vertex in self._vertices:
+            add = True
+            for unique_vertex in unique_vertices:
+                if unique_vertex == vertex:
+                    add = False
+                    break
+            if add:
+                unique_vertices.append(vertex)
+            # if vertex not in unique_vertices:
+            #     unique_vertices.append(vertex)
+        self._vertices = unique_vertices
 
     def get_vertices(self):
         return self._vertices

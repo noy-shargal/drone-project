@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import List
+import math
 
 import numpy as np
 from shapely.geometry import LineString, Point
@@ -88,25 +89,17 @@ class TangentBug:
 
     def _build_obstacles(self, full_lidar_scan, current_pose, threshold=0.1):
         output = list()
-        second_derivative = np.gradient(full_lidar_scan, edge_order=2)
-        abs_second_derivative = np.fabs(second_derivative)
-        discontinuities = np.where(abs_second_derivative > threshold, 1, 0)
         first_endpoint_r_index = None
-        for i in range(len(full_lidar_scan)):
-            if first_endpoint_r_index is None and full_lidar_scan[i] < np.float(np.inf):
+        for i in range(1, len(full_lidar_scan)-1):
+            if full_lidar_scan[i] < np.float(np.inf) and full_lidar_scan[i-1] == np.float(np.inf):
                 first_endpoint_r_index = i
-                break
-            if first_endpoint_r_index is not None and discontinuities[i] == 1:
+            if full_lidar_scan[i+1] == np.float(np.inf) and full_lidar_scan[i] < np.float(np.inf):
                 second_endpoint_r_index = i
-                new_obs = self._build_obstacle(first_endpoint_r_index, second_endpoint_r_index, current_pose,
-                                               full_lidar_scan)
-                output.append(new_obs)
-                first_endpoint_r_index = None
-        if first_endpoint_r_index is not None and first_endpoint_r_index < len(full_lidar_scan):
-            second_endpoint_r_index = len(full_lidar_scan)
-            new_obs = self._build_obstacle(first_endpoint_r_index, second_endpoint_r_index, current_pose,
-                                           full_lidar_scan)
-            output.append(new_obs)
+                if first_endpoint_r_index is not None:
+                    new_obs = self._build_obstacle(first_endpoint_r_index, second_endpoint_r_index, current_pose,
+                                                full_lidar_scan)
+                    output.append(new_obs)
+                    first_endpoint_r_index = None
 
         return output
 
@@ -220,6 +213,8 @@ class TangentBug:
 
     @staticmethod
     def _calculate_world_coordinates(r, theta, current_pose):
-        x = current_pose.pos.x + r * np.cos(theta + current_pose.orientation.z_rad)
-        y = current_pose.pos.y + r * np.sin(theta + current_pose.orientation.z_rad)
+        theta -= 90
+        x = current_pose.pos.x_m + r * np.cos(current_pose.orientation.z_rad - theta*math.pi/180)
+        y = current_pose.pos.y_m + r * np.sin(current_pose.orientation.z_rad - theta*math.pi/180)
         return Point(x, y)
+
