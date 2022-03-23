@@ -74,6 +74,22 @@ class Agent:
         while True:
 
             lidar_data = client.getLidarData()
+            sensing_obstacle, points_list, pose = client.senseObstacle()
+
+            if sensing_obstacle:
+                point = Point(points_list[0], points_list[1])
+                world_point = getPointInRealWorldCoords(point.x, point.y, pose)
+                if not self._obs.is_point_in_obstacles_map(Point(*world_point)):  # new obstacle
+                    self._algo = AlgoState.APF
+                    print("APF MODE")
+                    cur_pos = client.getPose()
+                    client.flyToPosition(cur_pos.pos.x_m, cur_pos.pos.y_m, cur_pos.pos.z_m, 0.1)
+                    tuple_goal = (goal.x_m, goal.y_m)
+                    self.apf_fly_to_destination(tuple_goal)
+                    self._algo = AlgoState.ASTAR
+                    print("ASTAR MODE")
+                    point_num += 1
+                    need_fly_command = True
 
             p = self._path[point_num].point()
             goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
@@ -94,22 +110,7 @@ class Agent:
                         client.getPose().pos.y_m) + ") ")
                     break
 
-            sensing_obstacle, points_list, pose = client.senseObstacle()
 
-            if sensing_obstacle:
-                point = Point(points_list[0], points_list[1])
-                world_point = getPointInRealWorldCoords(point.x, point.y, pose)
-                if not self._obs.is_point_in_obstacles_map(Point(*world_point)):  # new obstacle
-                    self._algo = AlgoState.APF
-                    print("APF MODE")
-                    cur_pos = client.getPose()
-                    client.flyToPosition(cur_pos.pos.x_m, cur_pos.pos.y_m, cur_pos.pos.z_m, 0.1)
-                    tuple_goal = (goal.x_m, goal.y_m)
-                    self.apf_fly_to_destination(tuple_goal)
-                    self._algo = AlgoState.ASTAR
-                    print("ASTAR MODE")
-                    point_num += 1
-                    need_fly_command = True
 
 
 

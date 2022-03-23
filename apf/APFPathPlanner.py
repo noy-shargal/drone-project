@@ -160,7 +160,7 @@ class APFPathPlanner:
             distance = math.sqrt((x - lidar_point[0]) ** 2 + (y - lidar_point[1]) ** 2)
             if distance < min_distance:
                 min_distance = distance
-        return min_distance
+        return np.max((min_distance - current_config.lidar_padding, current_config.lidar_padding))
 
     def _compute_window_size(self, distance_to_nearest_obstacle):
         window_size = int(min(30, distance_to_nearest_obstacle) / self._grid_unit_size)
