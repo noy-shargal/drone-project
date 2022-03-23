@@ -6,7 +6,8 @@ class Config:
 
     def __init__(self):
 
-        self.source = Point(-1172.0, -1168)
+        # self.source = Point(-1172.0, -1168) good for local minima
+        self.source = Point(-1200.0, -1200)
         self.destination = Point(0.0, -600.0)
         self.height = -30
         self.velocity = 5

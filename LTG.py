@@ -60,7 +60,7 @@ class TGVertex:
 
 
 class AugmentedSubGraph:
-    LIDAR_RANGE = 35
+    LIDAR_RANGE = 35.0
 
     def __init__(self, current_location: Point, target: Point):
         self._current_location = current_location
@@ -94,7 +94,7 @@ class AugmentedSubGraph:
 
     def _get_t_node_position(self, curr_position: Point, target: Point):
         theta = math.atan2(target.y - curr_position.y, target.x - curr_position.x)
-        r = np.min(self.LIDAR_RANGE, curr_position.distance(target))
+        r = np.min([self.LIDAR_RANGE, curr_position.distance(target)])
         delta_x = r * np.cos(theta)
         delta_y = r * np.sin(theta)
         pos = Point(curr_position.x + delta_x, curr_position.y + delta_y)

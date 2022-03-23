@@ -36,21 +36,22 @@ class TangentBug:
         """
         curr_pos = curr_pose.pos
         sub_graph = self._build_augmented_sub_graph(full_lidar_scan, curr_pose)
+        curr_point = Point(curr_pos.x_m, curr_pos.y_m)
         if self._mode == TangentBugModes.TARGET:
-            step = self._target_step(curr_pos, sub_graph)
+            step = self._target_step(curr_point, sub_graph)
         elif self._mode == TangentBugModes.WALL_WALKING:
-            step = self._wall_step(curr_pos, sub_graph)
+            step = self._wall_step(curr_point, sub_graph)
         else:
-            step = self._transition_step(curr_pos, sub_graph)
+            step = self._transition_step(curr_point, sub_graph)
         return step
 
-    def _target_step(self, curr_pos, sub_graph: AugmentedSubGraph):
+    def _target_step(self, curr_point, sub_graph: AugmentedSubGraph, epsilon=0.05):
         point, min_distance = sub_graph.get_closet_point_to_target()
-        local_minima = curr_pos.distance(self._target) <= min_distance
+        local_minima = curr_point.distance(self._target) + epsilon <= min_distance
         if not local_minima:
             return point
-        self._enter_wall_mode(curr_pos, sub_graph)
-        return self._wall_step(curr_pos, sub_graph)
+        self._enter_wall_mode(curr_point, sub_graph)
+        return self._wall_step(curr_point, sub_graph)
 
     def _enter_wall_mode(self, curr_pos, sub_graph: AugmentedSubGraph):
         self._mode = TangentBugModes.WALL_WALKING
@@ -141,9 +142,13 @@ class TangentBug:
                 start_vertex.add_edge(edge)
                 v.add_edge(edge)
 
-    def is_line_intersects_with_obstacles(self, line: LineString, obstacles):
+    @staticmethod
+    def is_line_intersects_with_obstacles(vertex_point, target_point, obstacles):
+        line_string = LineString([vertex_point, target_point])
         for obs in obstacles:
-            if obs.intersects_line(line):
+            if obs.point_is_endpoint(vertex_point):
+                continue
+            if obs.intersects_line(line_string):
                 return True
         return False
 
@@ -174,13 +179,13 @@ class TangentBug:
         inner_vertices = list()
 
         for v in vertices:
-            if v.vtype == "INNER" and v.is_admissible:
+            if (v.vtype == "INNER" or v.vtype == "T_NODE") and v.is_admissible:
                 inner_vertices.append(v)
 
         handled_list = list()
 
         for v in inner_vertices:
-            if not self.is_line_intersects_with_obstacles(LineString([v.point(), target_vertex.point()]), obstacles):
+            if not self.is_line_intersects_with_obstacles(v.point(), target_vertex.point() , obstacles):
                 edge = TGEdge(v, target_vertex, "VIRTUAL_EDGE")  # there is direct line
                 v.set_status(True, edge.distance)
                 graph.add_edge(edge)
