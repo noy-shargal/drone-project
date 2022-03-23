@@ -120,7 +120,7 @@ class Agent:
         while not self._apf_path_planner.reached_goal(curr_position):
             next_position = self._apf_path_planner.next_step(curr_position, self._lidar_points)
             self._clear_lidar_points()
-            self._client.flyToPosition(next_position[0][0], next_position[1], config.height,
+            self._client.flyToPosition(next_position[0], next_position[1], config.height,
                                        config.apf_velocity)
             print("fly to position")
             print(next_position[0], next_position[1])
