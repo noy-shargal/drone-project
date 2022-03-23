@@ -101,7 +101,7 @@ class APFPathPlanner:
         return dist < current_config.reach_dist
 
     def reached_goal(self, curr_position: Tuple):
-        self.reached_location(curr_position, self._goal)
+        return self.reached_location(curr_position, self._goal)
 
     @property
     def polygons_map(self):
