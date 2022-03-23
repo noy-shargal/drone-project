@@ -108,6 +108,8 @@ class Agent:
                     self.apf_fly_to_destination(tuple_goal)
                     self._algo = AlgoState.ASTAR
                     print("ASTAR MODE")
+                    point_num += 1
+                    need_fly_command = True
 
 
 
@@ -117,6 +119,7 @@ class Agent:
         self._apf_path_planner = APFPathPlanner(start, goal)
         curr_position = start
         self._lidar_points_counter.start()
+        reached_goal = False
         while not self._apf_path_planner.reached_goal(curr_position):
             next_position = self._apf_path_planner.next_step(curr_position, self._lidar_points)
             self._clear_lidar_points()
@@ -130,7 +133,10 @@ class Agent:
                 self._collect_lidar_points()
                 if self._apf_path_planner.reached_goal(curr_position):
                     print("APF REACHED LOCAL GOAL")
+                    reached_goal = True
                     break
+            if reached_goal:
+                break;
             curr_position = next_position
 
     def _collect_lidar_points(self):

@@ -12,7 +12,7 @@ class Config:
         self.apf_velocity = 5
         self.ltf_velocity = 3
         self.load_from_json = True
-        self.show_map = True
+        self.show_map = False
 
 
 
