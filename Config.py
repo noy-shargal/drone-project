@@ -8,10 +8,10 @@ class Config:
         self.source = Point(-1200.0, -1200)
         self.destination = Point(0.0, -600.0)
         self.height = -100
-        self.velocity = 5
+        self.velocity = 10
         self.ltf_velocity = 3
         self.load_from_json = True
-        self.show_map = False
+        self.show_map = True
 
 
 

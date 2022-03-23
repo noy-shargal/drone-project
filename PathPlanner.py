@@ -1,19 +1,14 @@
 from shapely.geometry import Point
-
 from Dijkstra import Dijkstra
+from MapDrawer import MapDrawer
 from Obstacles import Obstacles
-from TangentBug import TangentBug
 from enum import Enum, unique
-
 from Config import config
-
 
 @unique
 class AlgoState(Enum):
     ASTAR = 1
-    TANGENT_BUG_TOWARDS_TARGERT = 2
-    TANGENT_BUG_WALL_WALKING = 3
-
+    APF = 2
 
 class PathPlanner:
 
@@ -21,16 +16,11 @@ class PathPlanner:
 
         self._algo_state =  AlgoState.ASTAR
         self._astar = Dijkstra()
-        #self._tangent_bug = TangentBug()
-
         self._start_point = config.source
         self._destination_point = config.destination
         self._astar_path = list()
-
-
         self._obs = Obstacles()
         self._obs.set_destination_point(config.destination)
-
         self._load_map()
         self._prepare_astar_path()
 
@@ -53,8 +43,23 @@ class PathPlanner:
             self._astar_path = self._astar.get_path()
         else: assert False
 
-        print("Total Distance: " + str(dst.get_distance()))
-        print("Number Of vertices visited :" + str(self._astar.get_num_of_vertices_visited()))
+        if config.show_map:
+            md = MapDrawer()
+            md.set_source( self._start_point)
+            md.set_destination( self._destination_point)
+            polygons = self._obs.get_polygons()
+            md.add_polygons(polygons)
+            print("Number of polygons is: " + str(len(polygons)))
+            edges = self._obs.get_edges()
+            #md.add_edges(edges)
+            src = self._obs.get_source_vertex()
+            dst = self._obs.get_destination_vertex()
+            md.set_path(self._astar_path)
+            print("Total Distance: " + str(dst.get_distance()))
+            print("Number Of vertices visited :" + str(self._astar.get_num_of_vertices_visited()))
+            md.show()
+            print("Total Distance: " + str(dst.get_distance()))
+            print("Number Of vertices visited :" + str(self._astar.get_num_of_vertices_visited()))
 
     def is_point_in_obstacles_map(self, point: Point):
         return self._obs.is_point_in_obstacles_map(point)
