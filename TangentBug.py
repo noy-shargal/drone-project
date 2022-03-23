@@ -47,18 +47,21 @@ class TangentBug:
 
     def _target_step(self, curr_point, sub_graph: AugmentedSubGraph, epsilon=0.05):
         point, min_distance = sub_graph.get_closet_point_to_target()
-        local_minima = curr_point.distance(self._target) + epsilon <= min_distance
+        local_minima = curr_point.distance(self._target)  <= min_distance
         if not local_minima:
             return point
+        print("Local Minima -> WALL_WALKING")
         self._enter_wall_mode(curr_point, sub_graph)
         return self._wall_step(curr_point, sub_graph)
 
     def _enter_wall_mode(self, curr_pos, sub_graph: AugmentedSubGraph):
         self._mode = TangentBugModes.WALL_WALKING
+        print ("Local Minima -> WALL_WALKING")
         blocking_obstacle = sub_graph.get_blocking_obstacle()
         d_min, _ = blocking_obstacle.get_closest_point_to_target(self._target)
 
         self._wall_mode_data['blocking_obstacle'] = blocking_obstacle
+
         self._wall_mode_data['d_min'] = d_min
         self._wall_mode_data['start_pos'] = curr_pos
 
@@ -69,8 +72,7 @@ class TangentBug:
         self._wall_mode_data['d_min'] = d_min
 
         if sub_graph.is_g2_empty(d_min):
-            step = blocking_obstacle.get_positive_direction(self._wall_mode_data['last_direction'],
-                                                            self._target)
+            step = blocking_obstacle.get_positive_direction(self._wall_mode_data['last_direction'],self._target, curr_pos)
             self._wall_mode_data['last_step'] = self._build_last_direction(step, curr_pos)
             return step
         self._enter_transition_mode(sub_graph)
@@ -92,17 +94,23 @@ class TangentBug:
     def _build_obstacles(self, full_lidar_scan, current_pose, threshold=0.1):
         output = list()
         first_endpoint_r_index = None
-        for i in range(1, len(full_lidar_scan)-1):
-            if full_lidar_scan[i] < np.float(np.inf) and full_lidar_scan[i-1] == np.float(np.inf):
+
+        padded_full_lidar_scan  = np.array(np.concatenate(([np.float(np.inf)], full_lidar_scan, [np.float(np.inf)])))
+
+        for i in range(1, len(padded_full_lidar_scan)-1):
+            if padded_full_lidar_scan[i] < np.float(np.inf) and padded_full_lidar_scan[i-1] == np.float(np.inf):
                 first_endpoint_r_index = i
-            if full_lidar_scan[i+1] == np.float(np.inf) and full_lidar_scan[i] < np.float(np.inf):
+            if padded_full_lidar_scan[i+1] == np.float(np.inf) and padded_full_lidar_scan[i] < np.float(np.inf):
                 second_endpoint_r_index = i
                 if first_endpoint_r_index is not None:
                     new_obs = self._build_obstacle(first_endpoint_r_index, second_endpoint_r_index, current_pose,
-                                                full_lidar_scan)
+                                                padded_full_lidar_scan)
                     output.append(new_obs)
                     first_endpoint_r_index = None
 
+        print("Number of obstacles created in '_build_obstacles' is : ",len(output))
+        if len(output) == 0:
+            u=9
         return output
 
     def _enter_transition_mode(self, sub_graph: AugmentedSubGraph):

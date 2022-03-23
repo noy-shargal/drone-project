@@ -141,7 +141,7 @@ class AugmentedSubGraph:
                     point = v.point()
 
         assert point
-        return point, min_distance
+        return point, min_distance - self._current_location.distance(point)
 
     def get_blocking_obstacle(self):
         if self._blocking_obstacle is None:

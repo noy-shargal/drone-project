@@ -1,3 +1,4 @@
+from Config import config
 from DroneClient import DroneClient
 import DroneTypes
 import numpy as np
@@ -69,22 +70,24 @@ class MyDroneClient(DroneClient):
             output.append((lidar_data[i*3], lidar_data[i*3+1]))
         return output
 
-    def full_lidar_scan(self, theta_resolution=10, sleep_between_samples=0.07):
+    def full_lidar_scan(self, sleep_between_samples=0.07):
         """
         acquires a full angle aperture scan for the lidar
         :param theta_resolution: the step between different acquisitions
         :param continuously_update: if on will keep updating an acquired cell with new samples
         :return: a vector containing discrete samples for the entire angle range
         """
-        num_of_angles = self.LIDAR_ANGLE_APERTURE // theta_resolution
+        num_of_angles = self.LIDAR_ANGLE_APERTURE // config.lidar_theta_resolution
         output = np.ones((num_of_angles,))*np.float(np.inf)
-        for i in range(3*int(180/theta_resolution)+2):
+        for i in range(config.lidar_scans_number*int(180/config.lidar_theta_resolution)+2):
             lidar_data = self.client.getLidarData('Lidar1')
             if len(lidar_data.point_cloud) >= 3:
                 x, y = lidar_data.point_cloud[0], lidar_data.point_cloud[1]
                 r, theta_rad = self.getPointInPolarCoords(x, y)
+                r -= config.buffer_size
+                r = max(config.buffer_size,r)
                 theta = theta_rad * 180 / math.pi
-                angle_index = self._angle_to_index(theta, theta_resolution)
+                angle_index = self._angle_to_index(theta, config.lidar_theta_resolution)
                 output[angle_index] = r
                 if output[angle_index] < np.float(np.inf):
                     print(f"LIDAR: {theta}, {angle_index}, {r}")
