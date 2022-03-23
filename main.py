@@ -2,7 +2,6 @@ from Agent import Agent
 
 if __name__ == "__main__":
     drone_agent = Agent()
-    drone_agent.connect_and_spawn()
     agent = Agent()
     try:
         agent.connect_and_spawn()

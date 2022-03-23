@@ -4,7 +4,7 @@ import math
 import os
 
 from shapely.geometry import Polygon, Point
-from config import current_config, InfiniteRepulsionConfig
+from apf.config import current_config, InfiniteRepulsionConfig
 
 
 class LatticeMap:
@@ -64,10 +64,10 @@ class LatticeMap:
 
 class AttractionMap(LatticeMap):
 
-    def __init__(self, min_x: float, max_x: float, min_y: float, max_y: float):
+    def __init__(self, start, end, min_x: float, max_x: float, min_y: float, max_y: float):
         super(AttractionMap, self).__init__(min_x, max_x, min_y, max_y)
-        self._start = current_config.start_position
-        self._goal = current_config.end_position
+        self._start = start
+        self._goal = end
 
         self._start_i_j = self.coord_to_index(*self._start)
         self._goal_i_j = self.coord_to_index(*self._goal)

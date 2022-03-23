@@ -4,9 +4,9 @@ from copy import deepcopy
 import numpy
 from shapely.geometry import Point
 
-from ObstaclesCSVReader import ObstaclesCSVReader
-from LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
-from config import current_config
+from apf.ObstaclesCSVReader import ObstaclesCSVReader
+from apf.LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
+from apf.config import current_config
 
 
 class APFPathPlanner:
@@ -23,7 +23,7 @@ class APFPathPlanner:
 
         self._obstacles_map = ObstacleMap(self._polygons_map, min_x, max_x, min_y, max_y)
         self._repulsion_map = RepulsionMap(min_x, max_x, min_y, max_y, self._polygons_map)
-        self._attraction_map = AttractionMap(min_x, max_x, min_y, max_y)
+        self._attraction_map = AttractionMap(start_position, end_position, min_x, max_x, min_y, max_y)
 
         self._k = current_config.k
         self._s = current_config.s

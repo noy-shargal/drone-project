@@ -46,8 +46,8 @@ class MyDroneClient(DroneClient):
     def senseObstacle(self):
         lidar_data, pose = self.getLidarData()
         if lidar_data.points == [0.0]:
-            return False, [0.0]
-        return True, lidar_data.points
+            return False, [0.0], pose
+        return True, lidar_data.points, pose
 
     def getPointInRealWorldCoords(self, x_drone, y_drone, pose):
         theta = pose.orientation.z_rad

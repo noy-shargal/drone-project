@@ -77,7 +77,7 @@ class Agent:
             p = self._path[point_num].point()
             goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
             if need_fly_command:
-                client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, config.velocity)
+                client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, config.astar_velocity)
                 need_fly_command = False
                 print("Flying to point number: " + str(point_num) + str([goal.x_m, goal.y_m, goal.z_m]))
 
@@ -93,7 +93,7 @@ class Agent:
                         client.getPose().pos.y_m) + ") ")
                     break
 
-            sensing_obstacle, points_list = client.senseObstacle()
+            sensing_obstacle, points_list, _ = client.senseObstacle()
 
             if sensing_obstacle:
                 point = Point(points_list[0], points_list[1])
