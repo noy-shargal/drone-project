@@ -80,7 +80,7 @@ class APFPathPlanner:
                     min_j = j
         return min_i, min_j
 
-    def next_step(self, curr_position: Tuple, lidar_points=set()):
+    def next_step(self, curr_position: Tuple, lidar_points=set):
         distance_to_nearest_obstacle = self._calculate_distance(curr_position[0], curr_position[1], lidar_points)
         current_config.window_size = self._compute_window_size(distance_to_nearest_obstacle)
         potential_map = self._get_local_potential_map(curr_position)

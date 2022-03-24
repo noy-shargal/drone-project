@@ -74,7 +74,9 @@ class AttractionMap(LatticeMap):
         self._d = current_config.d
         self._min_value = np.float(np.inf)
         self._max_value = np.float(-np.inf)
+        print("Init Attraction latice ....")
         self._init_lattice()
+        print("Finished Attraction latice ....")
 
     def _attraction_value(self, i, j):
         dist = self._dist(self._goal_i_j, (i, j))
