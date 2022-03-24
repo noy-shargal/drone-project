@@ -18,6 +18,10 @@ class Config:
         self.load_from_json = True
         self.show_map = False
 
+        # bug properties
+        self.lidar_theta_resolution = 10
+        self.lidar_scans_number = 1
+        self.buffer_size = 0
 
 
 config = Config()

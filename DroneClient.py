@@ -86,6 +86,9 @@ class DroneClient:
         self.future = self.client.moveToPositionAsync(x, y, z, v, drivetrain=airsim.DrivetrainType.ForwardOnly,
                                                       yaw_mode=airsim.YawMode(False, 0.0))
 
+    def rotateByAngle(self, yaw_rate, duration):
+        self.future = self.client.rotateByYawRateAsync(yaw_rate, duration)
+
     def setAtPosition(self, x: float, y: float, z: float):
         """
         Set the drone at position instantly

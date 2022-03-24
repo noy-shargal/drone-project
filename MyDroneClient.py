@@ -4,6 +4,13 @@ import numpy as np
 import math
 from shapely.geometry import Point
 
+import time
+
+from utils import getPointInRealWorldCoords
+
+from Config import config
+from Obstacle import ThinWallObstacle
+
 
 class MyDroneClient(DroneClient):
     LIDAR_ANGLE_APERTURE = 180
@@ -64,46 +71,90 @@ class MyDroneClient(DroneClient):
     def parse_lidar_data(lidar_data):
         assert len(lidar_data) % 3 == 0
         output = list()
-        for i in range(len(lidar_data)//3):
-            output.append((lidar_data[i*3], lidar_data[i*3+1]))
+        for i in range(len(lidar_data) // 3):
+            output.append((lidar_data[i * 3], lidar_data[i * 3 + 1]))
         return output
 
-    def full_lidar_scan(self, theta_resolution=1, continuously_update=False):
+    def full_lidar_scan(self, full_lidar_scan_time, sleep_between_samples=0.07, verbose=False):
         """
         acquires a full angle aperture scan for the lidar
         :param theta_resolution: the step between different acquisitions
         :param continuously_update: if on will keep updating an acquired cell with new samples
         :return: a vector containing discrete samples for the entire angle range
         """
-        num_of_angles = self.LIDAR_ANGLE_APERTURE // theta_resolution
-        output = np.zeros((num_of_angles,))
-        while np.any(np.zeros_like(output) == output):
+        num_of_angles = self.LIDAR_ANGLE_APERTURE // config.lidar_theta_resolution
+        output = np.ones((num_of_angles,)) * np.float(np.inf)
+        scans = int(full_lidar_scan_time / sleep_between_samples)
+        for i in range(scans):
             lidar_data = self.client.getLidarData('Lidar1')
-
-
-
-            angle = self._extract_angle(lidar_data.pose)
-            value = self._prepare_lidar_value(lidar_data.point_cloud)
-            angle_index = self._angle_to_index(angle, theta_resolution)
-            print(f"LIDAR: {angle}, {angle_index}, {value}")
-            # if continuously_update or not output[angle_index]:
-            #     output[angle_index] = value
-            #     print(f"LIDAR: {angle}, {angle_index}, {value}")
+            if len(lidar_data.point_cloud) >= 3:
+                x, y = lidar_data.point_cloud[0], lidar_data.point_cloud[1]
+                r, theta_rad = self.getPointInPolarCoords(x, y)
+                r -= config.buffer_size
+                r = max(config.buffer_size, r)
+                theta = theta_rad * 180 / math.pi
+                angle_index = self._angle_to_index(theta, config.lidar_theta_resolution)
+                output[angle_index] = r
+                if verbose:
+                    print(f"LIDAR: {theta}, {angle_index}, {r}")
+            time.sleep(sleep_between_samples)
         return output
-
-    @staticmethod
-    def _extract_angle(pose):
-        theta = math.atan2(pose.orientation.y_val, pose.orientation.x_val) * 180 / math.pi
-        return theta
-
-    @staticmethod
-    def _prepare_lidar_value(point_cloud):
-        if len(point_cloud) == 1 and point_cloud[0] == 0.0:
-            return np.float(np.inf)
-        x, y = point_cloud[0], point_cloud[1]
-        dist = math.sqrt(x**2 + y**2)
-        return dist
 
     @staticmethod
     def _angle_to_index(angle, theta_resolution):
         return int((angle + 90) / theta_resolution)
+
+    def lidar_scan_contains_obstacle(self, full_lidar_scan):
+        for lidar_scan_idx in range(len(full_lidar_scan)):
+            if full_lidar_scan[lidar_scan_idx] < np.float(np.inf):  # obstacle was detected
+                return True
+        return False
+
+    def _build_obstacles(self, full_lidar_scan, current_pose, verbose=False):
+        output = list()
+        first_endpoint_r_index = None
+
+        padded_full_lidar_scan = np.array(np.concatenate(([np.float(np.inf)], full_lidar_scan, [np.float(np.inf)])))
+
+        for i in range(1, len(padded_full_lidar_scan) - 1):
+            if padded_full_lidar_scan[i] < np.float(np.inf) and padded_full_lidar_scan[i - 1] == np.float(np.inf):
+                first_endpoint_r_index = i
+            if padded_full_lidar_scan[i + 1] == np.float(np.inf) and padded_full_lidar_scan[i] < np.float(np.inf):
+                second_endpoint_r_index = i
+                if first_endpoint_r_index is not None:
+                    new_obs = self._build_obstacle(first_endpoint_r_index, second_endpoint_r_index, current_pose,
+                                                   padded_full_lidar_scan)
+                    output.append(new_obs)
+                    first_endpoint_r_index = None
+        if verbose:
+            print("Number of obstacles created in '_build_obstacles' is : ", len(output))
+        return output
+
+    def _build_obstacle(self, first_endpoint_r_index, second_endpoint_r_index, current_pose, full_lidar_scan):
+        first_endpoint_r = full_lidar_scan[first_endpoint_r_index]
+        first_theta = self._angle_index_to_value(first_endpoint_r_index, len(full_lidar_scan))
+        second_endpoint_r = full_lidar_scan[second_endpoint_r_index]
+        second_theta = self._angle_index_to_value(second_endpoint_r_index, len(full_lidar_scan))
+
+        first_endpoint_in_world_coordinates = self._calculate_world_coordinates(first_endpoint_r, first_theta,
+                                                                                current_pose)
+        second_endpoint_in_world_coordinates = self._calculate_world_coordinates(second_endpoint_r, second_theta,
+                                                                                 current_pose)
+        obs = ThinWallObstacle(first_endpoint_in_world_coordinates, second_endpoint_in_world_coordinates)
+        return obs
+
+    @staticmethod
+    def _calculate_world_coordinates(r, theta, current_pose):
+        real_theta = theta - 90
+        real_theta = real_theta * math.pi /180
+
+        x_drone = r * np.cos(real_theta)
+        y_drone = r * np.sin(real_theta)
+
+        xw, yw = getPointInRealWorldCoords(x_drone, y_drone, current_pose)
+
+        return Point(xw, yw)
+
+    @staticmethod
+    def _angle_index_to_value(angle_index, num_of_values):
+        return angle_index * 180 / num_of_values
