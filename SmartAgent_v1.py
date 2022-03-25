@@ -6,6 +6,7 @@ from enum import Enum, unique
 from shapely.geometry import Point
 
 from AStarState import AStarState
+from AlgoFSM import AlgoFSM
 from AlgoStateInterface import AlgoStateEnum
 from DroneTypes import Position
 from MyDroneClient import MyDroneClient
@@ -26,12 +27,16 @@ class SmartAgent_v1:
 
         self._apf_path_planner = None
         self._astar_path_planner = ASTARPathPlanner()
+        print("Finished A-Star Algorithm")
         self.astar_curr_point = 0
         self.client = MyDroneClient()
         self.path = self._astar_path_planner.get_path()
         self.obs = self._astar_path_planner.get_obstacles_object()
         self._lidar_points_counter = Countdowner(5.0)
         self._lidar_points = list()
+
+        self._algo_fsm = AlgoFSM(self, AlgoStateEnum.ASTAR, AlgoStateEnum.END)
+
 
     def connect_and_spawn(self):
         self.client.reset()
@@ -65,83 +70,15 @@ class SmartAgent_v1:
 
     def fly_to_destination(self):
 
-        state = AStarState(self)
         print("Init position " + str([config.source.x, config.source.y, config.height]))
         self.astar_curr_point = 1
-        while state.state_enum() != AlgoStateEnum.END:
-            state = state.enter()
+
+        state_enum = self._algo_fsm.init_state_enum()
+        while state_enum != AlgoStateEnum.END:
+            next_state_enum = self._algo_fsm.change_state(state_enum)
+            state_enum = next_state_enum
 
         print("Reached Goal !!! ")
-
-
-        prev_point_num = 0
-        point_num = 1
-        need_fly_command = True
-        real_path = list()
-        client = self.client
-        goal = Position()
-
-        while True:
-
-            lidar_data = client.full_lidar_scan(0.0, 0.04, True)
-            p = self.path[point_num].point()
-            goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
-
-
-            sensing_obstacle, points_list, pose = client.senseObstacle()
-
-            if sensing_obstacle:
-                point = Point(points_list[0], points_list[1])
-                world_point = getPointInRealWorldCoords(point.x, point.y, pose)
-                if not self.obs.is_point_in_obstacles_map(Point(*world_point)):  # new obstacle
-
-                    print("APF MODE")
-                    cur_pos = client.getPose()
-                    client.flyToPosition(cur_pos.pos.x_m, cur_pos.pos.y_m, cur_pos.pos.z_m, 0.1)
-                    tuple_goal = (goal.x_m, goal.y_m)
-                    is_new_unkmown_obstacle = True
-                    while is_new_unkmown_obstacle:
-                        self.apf_fly_to_destination(tuple_goal)
-                        point_num += 1
-                        p = self.path[point_num].point()
-                        goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
-                        tuple_goal = (goal.x_m, goal.y_m)
-                        is_new_unkmown_obstacle = client.isNewObstaclefullSenseObstacle(self.obs)
-
-
-
-                    print("ASTAR MODE")
-                    point_num += 1
-                    need_fly_command = True
-
-
-            if point_num >= len(self.path) + 1:
-                break  # finish
-
-            if need_fly_command:
-                client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, config.astar_velocity)
-                need_fly_command = False
-                print("Flying to point number: " + str(point_num) + str([goal.x_m, goal.y_m, goal.z_m]))
-
-            if self.reached_goal_2D(client.getPose().pos, goal):
-                print("Reached goal number : " + str(point_num))
-                prev_point_num = point_num
-                point_num += 1
-                need_fly_command = True
-                pos = client.getPose().pos
-
-                if point_num == len(self.path):
-                    print("Reached destination at (" + str(client.getPose().pos.x_m) + ", " + str(
-                        client.getPose().pos.y_m) + ") ")
-                    break
-
-    def fly_to_destination_v2(self):
-        pass
-
-
-
-
-
 
     def is_local_minima(self, pos_list):
         first_pos = pos_list[0]
@@ -225,10 +162,6 @@ class SmartAgent_v1:
             self._lidar_points = self._lidar_points[-20:]
             self._lidar_points_counter.start()
 
-    @property
-    def client(self):
-        return self.client
 
-    @client.setter
-    def client(self, value):
-        self._client = value
+
+

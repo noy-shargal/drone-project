@@ -16,8 +16,8 @@ class AlgoStateInterface:
     def enter(self):
         pass
 
-    def exit(self, next_state):
-        pass
+    def exit(self):
+        return
 
     def state_enum(self):
         return self._state_enum

@@ -1,12 +1,11 @@
-from  AlgoState import AlgoStateEnum, AlgoState
-
-from AlgoStateInterface import AlgoStateInterface
+from AlgoStateInterface import AlgoStateInterface, AlgoStateEnum
 
 
 class TransistionState(AlgoStateInterface):
 
-    def __init__(self):
+    def __init__(self, agent):
         super().__init__(AlgoStateEnum.ASTAR)
+        self._agent = agent
 
     def enter(self):
         # full 360 scan
@@ -20,4 +19,4 @@ class TransistionState(AlgoStateInterface):
 
     def exit(self):
         # change mode to next_mode
-        pass
+        return
