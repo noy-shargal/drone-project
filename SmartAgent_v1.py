@@ -2,6 +2,7 @@ import math
 import random
 import time
 from enum import Enum, unique
+from typing import List
 
 from shapely.geometry import Point
 
@@ -80,11 +81,21 @@ class SmartAgent_v1:
 
         print("Reached Goal !!! ")
 
+    def is_local_minima_in_map(self, pos_list: List):
+        for p in pos_list:
+            if self.obs.is_point_in_obstacles_map(p):
+                return True
+        return False
+
+
+
     def is_local_minima(self, pos_list):
         first_pos = pos_list[0]
         last_pos = pos_list[len(pos_list) - 1]
         if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 1.5:
-            return True
+            if self.is_local_minima_in_map(pos_list):
+                print("This local minima ia in MAP - you should have done better !!!")
+                return True
         return False
 
     def escape_local_minima(self):
@@ -96,6 +107,20 @@ class SmartAgent_v1:
             lidar_data_list.append(lidar_data)
             time.sleep(0.1)
         y = 9
+
+    def rotate_for_unknown_obstacles(self):
+
+        lidar_data_list = []
+        for i in range(8):
+            self.client.rotateByAngle(90, 0.5)
+            lidar_data = self.client.full_lidar_scan(0.3, 0.04, True)
+            for p in lidar_data:
+                point = Point(p.x, p.y)
+                if not self.obs.is_point_in_obstacles_map(point):
+                    return True
+            lidar_data_list.append(lidar_data)
+            time.sleep(0.1)
+        return False
 
     def apf_fly_to_destination(self, goal):
         cur_pose = self.client.getPose()

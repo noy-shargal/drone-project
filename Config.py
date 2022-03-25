@@ -12,7 +12,7 @@ class Config:
         # self.destination = Point(-200, -550.0)
 
         self.height = -50
-        self.astar_velocity = 4
+        self.astar_velocity = 8
         self.apf_velocity = 3
         self.ltf_velocity = 3
         self.load_from_json = True

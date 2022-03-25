@@ -68,9 +68,9 @@ class APFState(AlgoStateInterface):
 
                 if self._agent._apf_path_planner.reached_goal(curr_position):
                     print("APF REACHED LOCAL GOAL")
-                    return AlgoStateEnum.ASTAR
+                    return AlgoStateEnum.TRANSISTION
             curr_position = next_position
-        return AlgoStateEnum.ASTAR
+        return AlgoStateEnum.TRANSISTION
 
     def exit(self):
         print("EXIT APF STATE")

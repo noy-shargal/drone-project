@@ -8,15 +8,11 @@ class TransistionState(AlgoStateInterface):
         self._agent = agent
 
     def enter(self):
-        # full 360 scan
-        # if no unknown obstacled -
-            # next_mode = ASTAR
-        # else
-            # next_mode = APF
-        # fly to poistion
-        # sense for unknown obsticle - f there is on - on_exit_mode
-        pass
+        print("ËNTER Transistion State")
+        if self._agent.rotate_for_unknown_obstacles():
+            return AlgoStateEnum.APF
+        return AlgoStateEnum.ASTAR
 
     def exit(self):
-        # change mode to next_mode
+        print("ËXIT Transistion State")
         return
