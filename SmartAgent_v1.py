@@ -4,6 +4,7 @@ import time
 from enum import Enum, unique
 from typing import List
 
+import numpy as np
 from shapely.geometry import Point
 
 from AStarState import AStarState
@@ -113,11 +114,12 @@ class SmartAgent_v1:
         lidar_data_list = []
         for i in range(8):
             self.client.rotateByAngle(90, 0.5)
-            lidar_data = self.client.full_lidar_scan(0.3, 0.04, True)
+            lidar_data = self.client.full_lidar_scan_v2(0.3, 0.04, True)
             for p in lidar_data:
-                point = Point(p.x, p.y)
-                if not self.obs.is_point_in_obstacles_map(point):
-                    return True
+                if p != np.float(np.inf):
+                    point = Point(p.x, p.y)
+                    if not self.obs.is_point_in_obstacles_map(point):
+                        return True
             lidar_data_list.append(lidar_data)
             time.sleep(0.1)
         return False

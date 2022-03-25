@@ -47,6 +47,9 @@ class LatticeMap:
             output[position] = self._map[position[0], position[1]]
         return output
 
+
+
+
     def index_to_coord(self, i, j):
         x = self._min_x + (i + 0.5) * self._unit_size
         y = self._min_y + (j + 0.5) * self._unit_size
@@ -85,12 +88,35 @@ class AttractionMap(LatticeMap):
         return (1 / 2.0) * dist ** 2
 
     def _init_lattice(self):
+        pass
+        # for i in range(self._size_x):
+        #     for j in range(self._size_y):
+        #         # self._map[i, j] = self._attraction_value(i, j)
+        #         # self._max_value = max(self._max_value, self._attraction_value(i, j))
+        #         # self._min_value = min(self._min_value, self._attraction_value(i, j))
 
-        for i in range(self._size_x):
-            for j in range(self._size_y):
-                self._map[i, j] = self._attraction_value(i, j)
-                self._max_value = max(self._max_value, self._attraction_value(i, j))
-                self._min_value = min(self._min_value, self._attraction_value(i, j))
+    def get_local_values(self, x, y):
+        i, j = self.coord_to_index(x, y)
+        output = dict()
+        # Top
+        for x_iterator in range(-(current_config.window_size - 1) // 2, current_config.window_size // 2 + 1, 1):
+            position = (i + x_iterator, j - current_config.window_size // 2)
+            # output[position] = self._map[position[0], position[1]]
+            output[position] =  self._attraction_value(position[0], position[1])
+        # Bottom
+        for x_iterator in range(-(current_config.window_size - 1) // 2, current_config.window_size // 2 + 1, 1):
+            position = (i + x_iterator, j + current_config.window_size // 2)
+            #output[position] = self._map[position[0], position[1]]
+            output[position] = self._attraction_value(position[0], position[1])
+        # Left
+        for y_iterator in range(-(current_config.window_size - 1) // 2 + 1, current_config.window_size // 2, 1):
+            position = (i - current_config.window_size // 2, j + y_iterator)
+            output[position] = self._attraction_value(position[0], position[1])
+        # Right
+        for y_iterator in range(-(current_config.window_size - 1) // 2 + 1, current_config.window_size // 2, 1):
+            position = (i + current_config.window_size // 2, j + y_iterator)
+            output[position] = self._attraction_value(position[0], position[1])
+        return output
 
     @property
     def min_value(self):
