@@ -6,10 +6,19 @@ from shapely.geometry import Point
 
 import time
 
+from Obstacles import Obstacles
 from utils import getPointInRealWorldCoords
 
 from Config import config
 from Obstacle import ThinWallObstacle
+
+class LidarPointInfo:
+    def __init__(self, x, y, r):
+        self.x = x
+        self.y = y
+        self.r = r
+
+
 
 
 class MyDroneClient(DroneClient):
@@ -56,6 +65,18 @@ class MyDroneClient(DroneClient):
             return False, [0.0], pose
         return True, lidar_data.points, pose
 
+    def isNewObstaclefullSenseObstacle(self, obs: Obstacles):
+        lidar_data = self.full_lidar_scan(0.0, 0.04, True)
+        for pi in lidar_data:
+            if pi !=np.float(np.inf):
+                obs.is_point_in_obstacles_map(Point(pi.x, pi.y))
+                return True
+        return False
+
+
+
+
+
     def getPointInRealWorldCoords(self, x_drone, y_drone, pose):
         theta = pose.orientation.z_rad
         x_world = x_drone * np.cos(theta) - y_drone * np.sin(theta) + pose.pos.x_m
@@ -95,6 +116,32 @@ class MyDroneClient(DroneClient):
                 theta = theta_rad * 180 / math.pi
                 angle_index = self._angle_to_index(theta, config.lidar_theta_resolution)
                 output[angle_index] = r
+                if verbose:
+                    print(f"LIDAR: {theta}, {angle_index}, {r}")
+            time.sleep(sleep_between_samples)
+        return output
+
+    def full_lidar_scan_v2(self, full_lidar_scan_time, sleep_between_samples=0.07, verbose=False):
+        """
+        acquires a full angle aperture scan for the lidar
+        :param theta_resolution: the step between different acquisitions
+        :param continuously_update: if on will keep updating an acquired cell with new samples
+        :return: a vector containing discrete samples for the entire angle range
+        """
+        num_of_angles = self.LIDAR_ANGLE_APERTURE // config.lidar_theta_resolution
+        output = np.ones((num_of_angles,)) * np.float(np.inf)
+        scans = int(full_lidar_scan_time / sleep_between_samples)
+        for i in range(scans):
+            lidar_data = self.client.getLidarData('Lidar1')
+            if len(lidar_data.point_cloud) >= 3:
+                x, y = lidar_data.point_cloud[0], lidar_data.point_cloud[1]
+                r, theta_rad = self.getPointInPolarCoords(x, y)
+                r -= config.buffer_size
+                r = max(config.buffer_size, r)
+                theta = theta_rad * 180 / math.pi
+                angle_index = self._angle_to_index(theta, config.lidar_theta_resolution)
+                wx, wy = self.getPointInRealWorldCoords(x, y)
+                output[angle_index] = LidarPointInfo(wx,wy,r)
                 if verbose:
                     print(f"LIDAR: {theta}, {angle_index}, {r}")
             time.sleep(sleep_between_samples)

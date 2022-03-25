@@ -1,15 +1,19 @@
 import time
+from Config import config
 
 from Agent import Agent
+from SmartAgent_v1 import SmartAgent_v1
 
 if __name__ == "__main__":
     drone_agent = Agent()
-    agent = Agent()
+    agent = None
+    if config.fly_with_full_lidar:
+        agent = SmartAgent_v1()
+    else:
+        agent = Agent()
+
     try:
         agent.connect_and_spawn()
-        for i in range(10):
-            agent.client.rotateByAngle(90, 5)
-            time.sleep(5)
         agent.fly_to_destination()
     finally:
         agent.client.reset()
