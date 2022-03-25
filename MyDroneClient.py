@@ -12,13 +12,12 @@ from utils import getPointInRealWorldCoords
 from Config import config
 from Obstacle import ThinWallObstacle
 
+
 class LidarPointInfo:
     def __init__(self, x, y, r):
         self.x = x
         self.y = y
         self.r = r
-
-
 
 
 class MyDroneClient(DroneClient):
@@ -68,14 +67,10 @@ class MyDroneClient(DroneClient):
     def isNewObstaclefullSenseObstacle(self, obs: Obstacles):
         lidar_data = self.full_lidar_scan(0.0, 0.04, True)
         for pi in lidar_data:
-            if pi !=np.float(np.inf):
+            if pi != np.float(np.inf):
                 obs.is_point_in_obstacles_map(Point(pi.x, pi.y))
                 return True
         return False
-
-
-
-
 
     def getPointInRealWorldCoords(self, x_drone, y_drone, pose):
         theta = pose.orientation.z_rad
@@ -121,7 +116,7 @@ class MyDroneClient(DroneClient):
             time.sleep(sleep_between_samples)
         return output
 
-    def full_lidar_scan_v2(self, full_lidar_scan_time, sleep_between_samples=0.07, verbose=False):
+    def full_lidar_scan_v2(self, full_lidar_scan_time, pose, sleep_between_samples=0.07, verbose=False):
         """
         acquires a full angle aperture scan for the lidar
         :param theta_resolution: the step between different acquisitions
@@ -140,8 +135,8 @@ class MyDroneClient(DroneClient):
                 r = max(config.buffer_size, r)
                 theta = theta_rad * 180 / math.pi
                 angle_index = self._angle_to_index(theta, config.lidar_theta_resolution)
-                wx, wy = self.getPointInRealWorldCoords(x, y)
-                output[angle_index] = LidarPointInfo(wx,wy,r)
+                wx, wy = self.getPointInRealWorldCoords(x, y, pose)
+                output[angle_index] = LidarPointInfo(wx, wy, r)
                 if verbose:
                     print(f"LIDAR: {theta}, {angle_index}, {r}")
             time.sleep(sleep_between_samples)
@@ -160,7 +155,7 @@ class MyDroneClient(DroneClient):
     def _build_obstacles(self, full_lidar_scan, current_pose, verbose=False):
         output = list()
         first_endpoint_r_index = None
-
+        trend = None
         padded_full_lidar_scan = np.array(np.concatenate(([np.float(np.inf)], full_lidar_scan, [np.float(np.inf)])))
 
         for i in range(1, len(padded_full_lidar_scan) - 1):
@@ -168,7 +163,17 @@ class MyDroneClient(DroneClient):
                 first_endpoint_r_index = i
             if padded_full_lidar_scan[i + 1] == np.float(np.inf) and padded_full_lidar_scan[i] < np.float(np.inf):
                 second_endpoint_r_index = i
-                if first_endpoint_r_index is not None:
+                assert first_endpoint_r_index is not None
+                new_obs = self._build_obstacle(first_endpoint_r_index, second_endpoint_r_index, current_pose,
+                                               padded_full_lidar_scan)
+                output.append(new_obs)
+                first_endpoint_r_index = None
+            elif first_endpoint_r_index is not None and first_endpoint_r_index < i:
+                current_trend = np.sign(padded_full_lidar_scan[i] / padded_full_lidar_scan[i - 1])
+                if trend is None:
+                    trend = current_trend
+                elif current_trend != trend:
+                    second_endpoint_r_index = i
                     new_obs = self._build_obstacle(first_endpoint_r_index, second_endpoint_r_index, current_pose,
                                                    padded_full_lidar_scan)
                     output.append(new_obs)
@@ -179,9 +184,9 @@ class MyDroneClient(DroneClient):
 
     def _build_obstacle(self, first_endpoint_r_index, second_endpoint_r_index, current_pose, full_lidar_scan):
         first_endpoint_r = full_lidar_scan[first_endpoint_r_index]
-        first_theta = self._angle_index_to_value(first_endpoint_r_index, len(full_lidar_scan))
+        first_theta = self._angle_index_to_value(first_endpoint_r_index - 0.5, len(full_lidar_scan))
         second_endpoint_r = full_lidar_scan[second_endpoint_r_index]
-        second_theta = self._angle_index_to_value(second_endpoint_r_index, len(full_lidar_scan))
+        second_theta = self._angle_index_to_value(second_endpoint_r_index + 0.5, len(full_lidar_scan))
 
         first_endpoint_in_world_coordinates = self._calculate_world_coordinates(first_endpoint_r, first_theta,
                                                                                 current_pose)
@@ -193,7 +198,7 @@ class MyDroneClient(DroneClient):
     @staticmethod
     def _calculate_world_coordinates(r, theta, current_pose):
         real_theta = theta - 90
-        real_theta = real_theta * math.pi /180
+        real_theta = real_theta * math.pi / 180
 
         x_drone = r * np.cos(real_theta)
         y_drone = r * np.sin(real_theta)

@@ -114,7 +114,8 @@ class SmartAgent_v1:
         lidar_data_list = []
         for i in range(8):
             self.client.rotateByAngle(90, 0.5)
-            lidar_data = self.client.full_lidar_scan_v2(0.3, 0.04, True)
+            pose = self.client.getPose()
+            lidar_data = self.client.full_lidar_scan_v2(0.3, pose, 0.04, True)
             for p in lidar_data:
                 if p != np.float(np.inf):
                     point = Point(p.x, p.y)
