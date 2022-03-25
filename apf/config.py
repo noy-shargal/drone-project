@@ -71,7 +71,7 @@ class FiniteRepulsionConfig:
 
 finite_repulsion_config1 = FiniteRepulsionConfig(start_position=(-1200.0, -1200.0),
                                                  end_position=(0.0, -600.0),
-                                                 height=-30,
+                                                 height=-100,
                                                  q_star=15,
                                                  s=25,
                                                  k=0.025,
@@ -79,10 +79,10 @@ finite_repulsion_config1 = FiniteRepulsionConfig(start_position=(-1200.0, -1200.
                                                  grid_size=0.25,
                                                  velocity=1.0,
                                                  data_type=np.float32,
-                                                 unknown_amplification=90,
+                                                 unknown_amplification=70,
                                                  use_obstacles_map=False,
                                                  reach_dist=10,
-                                                 window_size=13,
+                                                 window_size=20,
                                                  eta=7,
                                                  lidar_padding=0)
 current_config = finite_repulsion_config1

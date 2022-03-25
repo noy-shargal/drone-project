@@ -12,9 +12,16 @@ class APFState(AlgoStateInterface):
         super().__init__(AlgoStateEnum.APF)
         self._agent = agent
 
+    def _afine_point(self, x1,y1, x2,y2, ratio=90):
+        x = x1 * (1.0-ratio) + x2 * ratio
+        y = y1 * (1.0-ratio) + y2 * ratio
+        return x,y
+
     def enter(self):
         print("ENTER APF STATE")
 
+        if self._agent.astar_curr_point >= len(self._agent.path):
+            return AlgoStateEnum.END
         client = self._agent.client
 
         goal = Position()
@@ -24,18 +31,13 @@ class APFState(AlgoStateInterface):
         cur_pose = client.getPose()
         start = (cur_pose.pos.x_m, cur_pose.pos.y_m)
         goal_tupple = (goal.x_m, goal.y_m)
-        client.stop()
+        #client.stop()
         self._agent._apf_path_planner = APFPathPlanner(start, goal_tupple)
         curr_position = start
         self._agent._lidar_points_counter.start()
-
-        reached_goal = False
-
-        is_local_minima = False
         num_steps = 0
-
         pos_list = list()
-
+        velocity =  config.apf_velocity
         while not self._agent._apf_path_planner.reached_goal(curr_position):
             next_position = self._agent._apf_path_planner.next_step(curr_position, self._agent._lidar_points)
             num_steps += 1
@@ -51,8 +53,19 @@ class APFState(AlgoStateInterface):
             ###################################################################################
 
             self._agent._clear_lidar_points()
-            client.flyToPosition(next_position[0], next_position[1], config.height,
-                                              config.apf_velocity)
+            is_wall_ahead, point = self._agent.is_wall_ahead()
+            x = next_position[0]
+            y = next_position[1]
+            if is_wall_ahead:
+                print("WALL AHEAD !!! ")
+
+                velocity = config.apf_velocity - 2
+                assert point is not None
+                x, y = self._afine_point(point.x, point.y, client.getPose().pos.x_m, client.getPose().pos.y_m)
+                print("AVOIDING WALL AHEAD -> "+str((x,y)))
+            else:
+                velocity = config.apf_velocity
+            client.flyToPosition(x,y , config.height,velocity)
             # print("fly to position")
             # print(next_position[0], next_position[1])
             self._agent._collect_lidar_points()
@@ -68,8 +81,10 @@ class APFState(AlgoStateInterface):
 
                 if self._agent._apf_path_planner.reached_goal(curr_position):
                     print("APF REACHED LOCAL GOAL")
+                    self._agent.astar_curr_point +=1
                     return AlgoStateEnum.TRANSISTION
             curr_position = next_position
+        self._agent.astar_curr_point += 1
         return AlgoStateEnum.TRANSISTION
 
     def exit(self):

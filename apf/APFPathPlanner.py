@@ -3,11 +3,10 @@ from typing import Tuple, Set
 from copy import deepcopy
 import numpy
 import numpy as np
-from shapely.geometry import Point
-
 from apf.ObstaclesCSVReader import ObstaclesCSVReader
 from apf.LatticeMap import RepulsionMap, AttractionMap, ObstacleMap
 from apf.config import current_config
+from Config import config
 
 
 class APFPathPlanner:

@@ -9,7 +9,7 @@ class TransistionState(AlgoStateInterface):
 
     def enter(self):
         print("ËNTER Transistion State")
-        if self._agent.rotate_for_unknown_obstacles():
+        if self._agent.is_wall_ahead(30):
             return AlgoStateEnum.APF
         return AlgoStateEnum.ASTAR
 

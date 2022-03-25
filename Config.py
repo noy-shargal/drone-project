@@ -12,8 +12,8 @@ class Config:
         # self.destination = Point(-200, -550.0)
 
         self.height = -50
-        self.astar_velocity = 8
-        self.apf_velocity = 3
+        self.astar_velocity = 10
+        self.apf_velocity = 4
         self.ltf_velocity = 3
         self.load_from_json = True
         self.show_map = False
@@ -23,6 +23,7 @@ class Config:
         self.fly_with_full_lidar = True
         self.lidar_scans_number = 1
         self.buffer_size = 0
+        self.wall_detection_angle_fov = 30
 
 
 config = Config()

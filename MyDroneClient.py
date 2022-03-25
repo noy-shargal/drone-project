@@ -14,12 +14,13 @@ from Obstacle import ThinWallObstacle
 
 
 class LidarPointInfo:
-    def __init__(self, x, y, r):
+    def __init__(self, x, y, r, theta):
         self.x = x
         self.y = y
         self.r = r
+        self.theta = theta
 
-
+#LidarPointInfo = np.dtype([('x', np.float32), ('y', np.float ), ('r', np.float )])
 class MyDroneClient(DroneClient):
     LIDAR_ANGLE_APERTURE = 180
 
@@ -116,7 +117,7 @@ class MyDroneClient(DroneClient):
             time.sleep(sleep_between_samples)
         return output
 
-    def full_lidar_scan_v2(self, full_lidar_scan_time, pose, sleep_between_samples=0.07, verbose=False):
+    def full_lidar_scan_v2(self, full_lidar_scan_time, sleep_between_samples=0.07, verbose=False):
         """
         acquires a full angle aperture scan for the lidar
         :param theta_resolution: the step between different acquisitions
@@ -125,26 +126,35 @@ class MyDroneClient(DroneClient):
         """
         num_of_angles = self.LIDAR_ANGLE_APERTURE // config.lidar_theta_resolution
         output = np.ones((num_of_angles,)) * np.float(np.inf)
+        world_cords_dict = {}
         scans = int(full_lidar_scan_time / sleep_between_samples)
         for i in range(scans):
             lidar_data = self.client.getLidarData('Lidar1')
             if len(lidar_data.point_cloud) >= 3:
                 x, y = lidar_data.point_cloud[0], lidar_data.point_cloud[1]
                 r, theta_rad = self.getPointInPolarCoords(x, y)
+
                 r -= config.buffer_size
                 r = max(config.buffer_size, r)
                 theta = theta_rad * 180 / math.pi
                 angle_index = self._angle_to_index(theta, config.lidar_theta_resolution)
-                wx, wy = self.getPointInRealWorldCoords(x, y, pose)
-                output[angle_index] = LidarPointInfo(wx, wy, r)
+                output[angle_index] = r
+
+                wx, wy = getPointInRealWorldCoords(x, y, self.getPose())
+
+                world_cords_dict[angle_index] = LidarPointInfo(theta, wx, wy, r)
+
                 if verbose:
                     print(f"LIDAR: {theta}, {angle_index}, {r}")
             time.sleep(sleep_between_samples)
-        return output
+        return output, world_cords_dict
 
     @staticmethod
     def _angle_to_index(angle, theta_resolution):
         return int((angle + 90) / theta_resolution)
+
+    def zero_angle_to_index(angle, theta_resolution):
+        return int(90 / theta_resolution)
 
     def lidar_scan_contains_obstacle(self, full_lidar_scan):
         for lidar_scan_idx in range(len(full_lidar_scan)):

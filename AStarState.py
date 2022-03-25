@@ -17,7 +17,6 @@ class AStarState(AlgoStateInterface):
         # if reached goal - exit to EndState
         print("ENTER A-STAR STATE")
         need_fly_command = True
-        reached_goal = False
         client = self._agent.client
         path = self._agent.path
         obs = self._agent.obs
@@ -27,7 +26,8 @@ class AStarState(AlgoStateInterface):
         start = (cur_pose.pos.x_m, cur_pose.pos.y_m)
 
         while True:
-
+            if self._agent.astar_curr_point >= len(self._agent.path):
+                return AlgoStateEnum.END
             p = path[self._agent.astar_curr_point].point()
             goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
             sensing_obstacle, points_list, pose = client.senseObstacle()
@@ -43,7 +43,7 @@ class AStarState(AlgoStateInterface):
             if need_fly_command:
                 client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, config.astar_velocity)
                 need_fly_command = False
-                print("Flying to point number: " + str(self._agent.astar_curr_point) + str([goal.x_m, goal.y_m, goal.z_m]))
+                #print("Flying to point number: " + str(self._agent.astar_curr_point) + str([goal.x_m, goal.y_m, goal.z_m]))
 
             if self._agent.reached_goal_2D(client.getPose().pos, goal):
                 print("Reached goal number : " + str(self._agent.astar_curr_point))
