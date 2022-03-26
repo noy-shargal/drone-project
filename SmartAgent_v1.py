@@ -51,11 +51,11 @@ class SmartAgent_v1:
             return True
         return False
 
-    def point_reached_goal_2D(self, curr_pos: Point, goal: Point):
+    def point_reached_goal_2D(self, curr_pos: Point, goal: Point, threshold=5):
         diff_x = curr_pos.x - goal.x
         diff_y = curr_pos.y - goal.y
         dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
-        if dist < 5.0:
+        if dist <threshold:
             return True
         return False
 

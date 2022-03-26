@@ -37,6 +37,9 @@ class Vector:
         self._x -= other._x
         self._y -= other._y
 
+    def opposite(self):
+        return Vector(Point(self._x, self._y) , Point(0, 0))
+
     def remove_projection(self, other):
         projection_scalar = self.inner_product(other) / self.get_norm()
         projection_vector = Vector(Point(0, 0), Point(self._x, self._y))
@@ -84,6 +87,8 @@ class LocalMinimaState(AlgoStateInterface):
         print("EXIT LOCAL MINIMA STATE")
         return
 
+
+
     def _stop(self):
         self._agent.client.stop()
         return
@@ -130,3 +135,45 @@ class LocalMinimaState(AlgoStateInterface):
 
         return step_line_string.intersects(m_line_string)
 
+
+    def _wall(self, full_lidar_scan, vector):
+        threshold = 15
+        angle = vector.get_angle()
+        left_angle = angle -threshold
+        right_angle = angle + threshold
+
+        left_index = self._agent.client._angle_to_index(left_angle)
+        right_index = self._agent.client._angle_to_index(right_angle)
+
+        for angle_index in range(left_index, right_index +1):
+            if full_lidar_scan[angle_index] == np.float(np.inf):
+                return False
+        return True
+
+    def _calculate_next_position(self, direction_vector: Vector):
+        pos = self._agent.client.getPose().pos
+        x, y = pos.x_m, pos.y_m
+        vx, vy = direction_vector._x, direction_vector._y
+        x = x + vx
+        y = y + vy
+        return Point(x, y)
+
+    def _fly_to_position_and_wait(self, next_position: Point):
+        pos = self._agent.client.getPose().pos
+        x, y = pos.x_m, pos.y_m
+        curr_pos = Point(x,y)
+        self._agent.client.flyToPosition(next_position.x, next_position.y, config.height, config.bug2_velocity)
+        while not self._agent.point_reached_goal_2D(curr_pos, next_position, 0.5):
+            pos = self._agent.client.getPose().pos
+            x, y = pos.x_m, pos.y_m
+            curr_pos = Point(x, y)
+
+    def _rotate_vectors_wall_ahead(self, obstacle_vector, direction_vector):
+        new_obstacle_vector = direction_vector
+        new_direction_vector = obstacle_vector.opposite()
+        return new_obstacle_vector, new_direction_vector
+
+    def _rotate_vectors_wall_completed(self, obstacle_vector, direction_vector):
+        new_obstacle_vector = direction_vector.opposite()
+        new_direction_vector = obstacle_vector
+        return new_obstacle_vector, new_direction_vector

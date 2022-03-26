@@ -49,10 +49,12 @@ class APFPathPlanner:
     def get_boundaries(self):
         return self._obstacles_reader.get_boundaries()
 
-    def _get_local_potential_map(self, position: Tuple):
-        local_attraction_map_value = self._attraction_map.get_local_values(*position)
+    def _get_local_potential_map(self, position: Tuple, use_attraction = True):
         local_repulsion_map_value = self._repulsion_map.get_local_values(*position)
-        return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
+        if use_attraction:
+            local_attraction_map_value = self._attraction_map.get_local_values(*position)
+            return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
+        return local_repulsion_map_value
 
     @staticmethod
     def weighted_average_of_dicts(dict1, weight1, dict2, weight2):
@@ -92,6 +94,21 @@ class APFPathPlanner:
         next_position = self._attraction_map.index_to_coord(*step_indices)
 
         return next_position
+
+    def next_step_no_attraction(self, curr_position: Tuple, lidar_points=set):
+        distance_to_nearest_obstacle = self._calculate_distance(curr_position[0], curr_position[1], lidar_points)
+        current_config.window_size = self._compute_window_size(distance_to_nearest_obstacle)
+        potential_map = self._get_local_potential_map(curr_position, False)
+        unknown_potential_map = self._calculate_unknown_environment_potential(curr_position, lidar_points)
+        total_potential = self.weighted_average_of_dicts(potential_map, 1, unknown_potential_map,
+                                                         self._unknown_amplification)
+
+        step_indices = min(total_potential, key=total_potential.get)
+
+        next_position = self._attraction_map.index_to_coord(*step_indices)
+
+        return next_position
+
 
     def reached_location(self, curr_position: Tuple, target_position: Tuple):
         diff_x = target_position[0] - curr_position[0]
