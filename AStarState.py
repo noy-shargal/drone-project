@@ -35,6 +35,7 @@ class AStarState(AlgoStateInterface):
                 point = Point(points_list[0], points_list[1])
                 world_point = getPointInRealWorldCoords(point.x, point.y, pose)
                 if not obs.is_point_in_obstacles_map(Point(*world_point)):  # new obstacle
+                    print("PADDING POINT: "+str(world_point))
                     return AlgoStateEnum.APF
 
             if self._agent.astar_curr_point >= len(path) + 1:

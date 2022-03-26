@@ -120,7 +120,7 @@ class Agent:
     def is_local_minima(self, pos_list):
         first_pos = pos_list[0]
         last_pos = pos_list[len(pos_list) - 1]
-        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 1.5:
+        if first_pos.distance(last_pos) < apf_config.grid_size * 6:
             return True
         return False
 
@@ -146,8 +146,8 @@ class Agent:
                 pos_list = list()
                 num_steps = 0
                 if is_local_minima:
-
                     print("Local Minima")
+
             self._clear_lidar_points()
             self._client.flyToPosition(next_position[0], next_position[1], config.height,
                                        config.apf_velocity)

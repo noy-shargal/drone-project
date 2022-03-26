@@ -25,5 +25,7 @@ class Config:
         self.buffer_size = 0
         self.wall_detection_angle_fov = 60
 
+        self.obstacles_padding = 4
+
 
 config = Config()

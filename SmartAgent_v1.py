@@ -87,7 +87,7 @@ class SmartAgent_v1:
             if self.is_local_minima_in_map(pos_list):
                 curr_pos = self.client.getPose().pos.x_m, self.client.getPose().pos.x_m
                 print("local minima:"+str(curr_pos)+" ia in MAP - you should have done better !!!")
-                return True
+            return True
         return False
 
     def _is_obstacle_in_angle_range(self, lidar_data,  left_angle, right_angle):

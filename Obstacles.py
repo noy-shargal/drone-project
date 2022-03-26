@@ -5,6 +5,8 @@ from typing import List, Dict, Tuple
 import Edge
 import Vertex
 from shapely.geometry import Polygon, Point, box, LineString
+
+from Config import config
 from Vertex import Vertex
 from Edge import Edge
 import json
@@ -204,7 +206,7 @@ class Obstacles:
             for polygon_id, points in self._points_map.items():
                 polygon = Polygon(points)
                 bbox = polygon.bounds
-                padding = 4
+                padding = config.obstacles_padding
                 box_polygon = box(bbox[0] - padding, bbox[1] - padding, bbox[2] + padding, bbox[3] + padding)
                 coords = box_polygon.exterior.coords
                 new_pts = self._coords_2_points(coords)
