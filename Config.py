@@ -23,7 +23,7 @@ class Config:
         self.fly_with_full_lidar = True
         self.lidar_scans_number = 1
         self.buffer_size = 0
-        self.wall_detection_angle_fov = 30
+        self.wall_detection_angle_fov = 60
 
 
 config = Config()

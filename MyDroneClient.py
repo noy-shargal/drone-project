@@ -142,7 +142,7 @@ class MyDroneClient(DroneClient):
 
                 wx, wy = getPointInRealWorldCoords(x, y, self.getPose())
 
-                world_cords_dict[angle_index] = LidarPointInfo(theta, wx, wy, r)
+                world_cords_dict[angle_index] = LidarPointInfo( wx, wy, r, theta)
 
                 if verbose:
                     print(f"LIDAR: {theta}, {angle_index}, {r}")

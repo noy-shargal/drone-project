@@ -97,27 +97,46 @@ class SmartAgent_v1:
 
         left_obs = False
         right_obs = False
+
+        found_left_index = -1
         for i_left in range(left_index,middle +1 ):
             if lidar_data[i_left] != np.float(np.inf):
                 left_obs = True
+                found_left_index = i_left
                 break
 
-        for i_right in range(middle, right_index +1):
+        found_right_index = -1
+        for i_right in range(right_index, middle -1 , -1):
             if lidar_data[i_right] != np.float(np.inf):
                 right_obs = True
+                found_right_index = i_right
                 break
 
-        return left_obs and right_obs, i_left, i_right
+        return left_obs ,right_obs, found_left_index, found_right_index
+
 
     def is_wall_ahead(self, angle_fov=config.wall_detection_angle_fov):
         lidar_data, lidar_coord_dict = self.client.full_lidar_scan_v2(0.5, 0.04)
-        is_obs, i_left, i_right = self._is_obstacle_in_angle_range(lidar_data, -0.5 * angle_fov, 0.5 * angle_fov)
+        left_obs, right_obs, i_left, i_right = self._is_obstacle_in_angle_range(lidar_data, -0.5 * angle_fov, 0.5 * angle_fov)
 
-        if is_obs:
-            print("WALL AHEAD !!!!")
-            lidar_poni_info = lidar_coord_dict[max(0,i_left)]
-            point = Point(lidar_poni_info.x, lidar_poni_info.y)
+        if left_obs and right_obs:
+            lidar_point_info = lidar_coord_dict[i_left]
+            print("WALL AHEAD  "+str(lidar_point_info.r)+" meters ahead !!!!")
+            if lidar_point_info.r >= 8:
+                point = Point(lidar_point_info.x, lidar_point_info.y)
+                return True, point
+
+        if right_obs:
+            print("WALL AHEAD ON THE RIGHT !!!!")
+            lidar_point_info = lidar_coord_dict[i_right]
+            point = Point(lidar_point_info.x, lidar_point_info.y)
             return True, point
+
+        # if left_obs:
+        #     print("WALL AHEAD ON THE LEFT !!!!")
+        #     lidar_point_info = lidar_coord_dict[i_left]
+        #     point = Point(lidar_point_info.x, lidar_point_info.y)
+        #     return True, point
         return False, None
 
     def escape_local_minima(self):
