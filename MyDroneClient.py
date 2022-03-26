@@ -125,6 +125,7 @@ class MyDroneClient(DroneClient):
         output = np.ones((num_of_angles,)) * np.float(np.inf)
         world_cords_dict = {}
         scans = int(full_lidar_scan_time / sleep_between_samples)
+        world_cords_dict = self._initialize_world_coords_dict(num_of_angles)
         for i in range(scans):
             lidar_data = self.client.getLidarData('Lidar1')
             if len(lidar_data.point_cloud) >= 3:
@@ -217,3 +218,9 @@ class MyDroneClient(DroneClient):
     @staticmethod
     def _angle_index_to_value(angle_index, num_of_values):
         return angle_index * 180 / num_of_values
+
+    def _initialize_world_coords_dict(self, num_of_angles):
+        output = dict()
+        for i in range(num_of_angles):
+            output[i] = np.float(np.inf)
+        return output
