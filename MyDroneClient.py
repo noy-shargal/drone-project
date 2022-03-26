@@ -14,11 +14,12 @@ from Obstacle import ThinWallObstacle
 
 
 class LidarPointInfo:
-    def __init__(self, x, y, r, theta):
+    def __init__(self, x, y, r, theta, valid):
         self.x = x
         self.y = y
         self.r = r
         self.theta = theta
+        self.valid = valid
 
 #LidarPointInfo = np.dtype([('x', np.float32), ('y', np.float ), ('r', np.float )])
 class MyDroneClient(DroneClient):
@@ -140,7 +141,7 @@ class MyDroneClient(DroneClient):
 
                 wx, wy = getPointInRealWorldCoords(x, y, self.getPose())
 
-                world_cords_dict[angle_index] = LidarPointInfo( wx, wy, r, theta)
+                world_cords_dict[angle_index] = LidarPointInfo( wx, wy, r, theta, True)
 
                 if verbose:
                     print(f"LIDAR: {theta}, {angle_index}, {r}")
@@ -222,5 +223,5 @@ class MyDroneClient(DroneClient):
     def _initialize_world_coords_dict(self, num_of_angles):
         output = dict()
         for i in range(num_of_angles):
-            output[i] = np.float(np.inf)
+            output[i] = LidarPointInfo( 0, 0, 0, 0, False)
         return output
