@@ -52,6 +52,7 @@ class APFState(AlgoStateInterface):
                 num_steps = 0
                 if is_local_minima:
                     print("Local Minima")
+                    return AlgoStateEnum.LOCAL_MINIMA
             ###################################################################################
             x = next_position[0]
             y = next_position[1]

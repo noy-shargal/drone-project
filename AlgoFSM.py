@@ -1,6 +1,7 @@
 from AStarState import AStarState
 from APFState import APFState
 from EndState import EndState
+from LocalMinimaState import LocalMinimaState
 from TransistionState import TransistionState
 from AlgoStateInterface import AlgoStateEnum
 
@@ -12,11 +13,13 @@ class AlgoFSM:
         apf_state = APFState(agent)
         end_state = EndState(agent)
         transition_state = TransistionState(agent)
+        local_minima = LocalMinimaState(agent)
 
         self._states = {AlgoStateEnum.ASTAR: astar_state,
                         AlgoStateEnum.APF: apf_state,
                         AlgoStateEnum.END: end_state,
-                        AlgoStateEnum.TRANSISTION: transition_state}
+                        AlgoStateEnum.TRANSISTION: transition_state,
+                        AlgoStateEnum.LOCAL_MINIMA: local_minima}
 
         self._init_state_enum = init_state_enum
         self._end_state_enum = end_state_enum

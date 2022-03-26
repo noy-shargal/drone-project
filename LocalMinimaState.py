@@ -7,7 +7,6 @@ from shapely.geometry import Point, LineString
 from AlgoStateInterface import AlgoStateInterface, AlgoStateEnum
 from Config import config
 from MyDroneClient import LidarPointInfo
-from SmartAgent_v1 import SmartAgent_v1
 
 
 class Vector:
@@ -55,7 +54,7 @@ class Vector:
 
 
 class LocalMinimaState(AlgoStateInterface):
-    def __init__(self, agent: SmartAgent_v1):
+    def __init__(self, agent):
         super().__init__(AlgoStateEnum.LOCAL_MINIMA)
         self._agent = agent
 
@@ -65,14 +64,14 @@ class LocalMinimaState(AlgoStateInterface):
         self._stop()
         m_line, d_min, start_position = self._calculate_m_line()  # LineString
         self._rotate_to_face_target(m_line)
-        full_lidar_scan, world_cords_dict = self._agent.client.full_lidar_scan_v2()
+        full_lidar_scan, world_cords_dict = self._agent.client.full_lidar_scan_v2(1.4)
         obstacle_vector, direction_vector = self._initialize_vectors(full_lidar_scan, world_cords_dict, m_line)
         current_position = start_position
         next_position = None
         while not self._crossed_m_line_at_lower_distance(m_line, d_min, start_position, next_position,
                                                          current_position):
             while not self._wall(full_lidar_scan, direction_vector) and self._wall(full_lidar_scan, obstacle_vector):
-                full_lidar_scan = self._agent.client.full_lidar_scan()
+                full_lidar_scan = self._agent.client.full_lidar_scan(1.4)
                 next_position = self._calculate_next_position(direction_vector)
                 self._fly_to_position_and_wait(next_position)
             if self._wall(full_lidar_scan, direction_vector):
