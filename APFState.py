@@ -29,7 +29,7 @@ class APFState(AlgoStateInterface):
         goal = Position()
         p = self._agent.path[self._agent.astar_curr_point].point()
         goal.x_m, goal.y_m, goal.z_m = p.x, p.y, config.height
-
+        print("1APF GOAL :" + str(goal) + 'INDEX :' + str(self._agent.astar_curr_point))
         cur_pose = client.getPose()
         start = (cur_pose.pos.x_m, cur_pose.pos.y_m)
         goal_tupple = (goal.x_m, goal.y_m)
@@ -93,9 +93,12 @@ class APFState(AlgoStateInterface):
 
                 if self._agent._apf_path_planner.reached_goal(curr_position):
                     print("APF REACHED LOCAL GOAL")
+                    print("2APF GOAL :" + str(goal) + 'INDEX :' + str(self._agent.astar_curr_point))
+
                     self._agent.astar_curr_point +=1
                     return AlgoStateEnum.TRANSISTION
             curr_position = next_position
+        print("3APF GOAL :" + str(goal) + 'INDEX :' + str(self._agent.astar_curr_point))
         self._agent.astar_curr_point += 1
         return AlgoStateEnum.TRANSISTION
 
