@@ -1,4 +1,5 @@
 import math
+import time
 from typing import Dict
 
 import numpy as np
@@ -37,7 +38,7 @@ class Vector:
         self._y -= other._y
 
     def opposite(self):
-        return Vector(Point(self._x, self._y) , Point(0, 0))
+        return Vector(Point(self._x, self._y), Point(0, 0))
 
     def remove_projection(self, other):
         projection_scalar = self.inner_product(other) / self.get_norm()
@@ -52,6 +53,9 @@ class Vector:
     def get_as_point(self):
         return Point(self._x, self._y)
 
+    def get_angle(self):
+        return math.atan2(self._y, self._x) * 180 / math.pi
+
 
 class LocalMinimaState(AlgoStateInterface):
     def __init__(self, agent):
@@ -62,18 +66,19 @@ class LocalMinimaState(AlgoStateInterface):
         print("ENTER LOCAL MINIMA STATE")
         # initialize
         self._stop()
+        time.sleep(0.5)
         m_line, d_min, start_position = self._calculate_m_line()  # LineString
-        self._rotate_to_face_target(m_line)
-        full_lidar_scan, world_cords_dict = self._agent.client.full_lidar_scan_v2(1.4)
+        full_lidar_scan, world_cords_dict = self._rotate_to_face_target_and_scan(m_line)
+
         obstacle_vector, direction_vector = self._initialize_vectors(full_lidar_scan, world_cords_dict, m_line)
         current_position = start_position
         next_position = None
         while not self._crossed_m_line_at_lower_distance(m_line, d_min, start_position, next_position,
                                                          current_position):
             while not self._wall(full_lidar_scan, direction_vector) and self._wall(full_lidar_scan, obstacle_vector):
-                full_lidar_scan = self._agent.client.full_lidar_scan(1.4)
                 next_position = self._calculate_next_position(direction_vector)
                 self._fly_to_position_and_wait(next_position)
+                full_lidar_scan = self._agent.client.full_lidar_scan(1.4)
             if self._wall(full_lidar_scan, direction_vector):
                 obstacle_vector, direction_vector = self._rotate_vectors_wall_ahead(obstacle_vector,
                                                                                     direction_vector)
@@ -85,8 +90,6 @@ class LocalMinimaState(AlgoStateInterface):
     def exit(self):
         print("EXIT LOCAL MINIMA STATE")
         return
-
-
 
     def _stop(self):
         self._agent.client.stop()
@@ -100,11 +103,26 @@ class LocalMinimaState(AlgoStateInterface):
         d_min = current_position.distance(target)
         return line, d_min, current_position
 
-    def _rotate_to_face_target(self, m_line):
-        pass
+    def _rotate_to_face_target_and_scan(self, m_line, step=1):
+        pos = self._agent.client.getPose().pos
+        current_position = Point(pos.x_m, pos.y_m)
+        norm = m_line.get_norm()
+
+        next_x = current_position.x - m_line._x / norm * step
+        next_y = current_position.y - m_line._y / norm * step
+
+        self._agent.client.flyToPosition(next_x, next_y, config.height, 0.25)
+        time.sleep(step/0.25)
+        self._agent.client.flyToPosition(current_position.x, current_position.y, config.height, 0.25)
+
+        full_lidar_scan, world_cords_dict = self._agent.client.full_lidar_scan_v2(1.4)
+
+        time.sleep(0.1)
+
+        return full_lidar_scan, world_cords_dict
 
     def _initialize_vectors(self, full_lidar_scan, world_coords: Dict[int, LidarPointInfo], m_line):
-        angle_index = np.argmin(full_lidar_scan)[0].item()
+        angle_index = np.argmin(full_lidar_scan).item()
         point_info = world_coords[angle_index]
         nearest_obs_point = Point(point_info.x, point_info.y)
         pos = self._agent.client.getPose().pos
@@ -134,20 +152,19 @@ class LocalMinimaState(AlgoStateInterface):
 
         return step_line_string.intersects(m_line_string)
 
-
     def _wall(self, full_lidar_scan, vector):
         threshold = 15
         angle = vector.get_angle()
-        left_angle = angle -threshold
+        left_angle = angle - threshold
         right_angle = angle + threshold
 
         left_index = self._agent.client._angle_to_index(left_angle)
         right_index = self._agent.client._angle_to_index(right_angle)
 
-        for angle_index in range(left_index, right_index +1):
-            if full_lidar_scan[angle_index] == np.float(np.inf):
-                return False
-        return True
+        for angle_index in range(left_index, right_index + 1):
+            if full_lidar_scan[angle_index] < np.float(np.inf):
+                return True
+        return False
 
     def _calculate_next_position(self, direction_vector: Vector):
         pos = self._agent.client.getPose().pos
@@ -160,7 +177,7 @@ class LocalMinimaState(AlgoStateInterface):
     def _fly_to_position_and_wait(self, next_position: Point):
         pos = self._agent.client.getPose().pos
         x, y = pos.x_m, pos.y_m
-        curr_pos = Point(x,y)
+        curr_pos = Point(x, y)
         self._agent.client.flyToPosition(next_position.x, next_position.y, config.height, config.bug2_velocity)
         while not self._agent.point_reached_goal_2D(curr_pos, next_position, 0.5):
             pos = self._agent.client.getPose().pos

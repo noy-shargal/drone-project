@@ -37,11 +37,11 @@ class SmartAgent_v1:
         self.client.reset()
         print("Connecting.....")
         self.client.connect()
-        time.sleep(2)
+        time.sleep(4)
         self.client.setAtPosition(config.source.x, config.source.y, config.height)
-        time.sleep(2)
+        time.sleep(3)
         print(self.client.isConnected())
-        time.sleep(2)
+        time.sleep(8)
 
     def reached_goal_2D(self, curr_pos: Position, goal: Position):
         diff_x = curr_pos.x_m - goal.x_m
@@ -178,7 +178,7 @@ class SmartAgent_v1:
                     if self._apf_path_planner.new_obstacle((x, y)):
                         point = (round(x, 1), round(y, 1))
                         if not point in self._lidar_points:
-                            #print(point)
+                            print(point)
                             self._lidar_points.append(point)
 
     def _clear_lidar_points(self):

@@ -42,10 +42,7 @@ class MyDroneClient(DroneClient):
         self.stopped = True
         pose_res = self.getPose()
         x, y, z = self.toCoords(pose_res)
-        self.setAtPosition(x, y, z)
-
-    def resume(self):
-        super().flyToPosition(self.target_params)
+        self.flyToPosition(x, y, z, 0.01)
 
     def flyToPosition(self, x: float, y: float, z: float, v: float):
         self.target_params = x, y, z, v
@@ -150,7 +147,7 @@ class MyDroneClient(DroneClient):
         return output, world_cords_dict
 
     @staticmethod
-    def _angle_to_index(angle, theta_resolution):
+    def _angle_to_index(angle, theta_resolution = config.lidar_theta_resolution):
         return int((angle + 90) / theta_resolution)
 
     def zero_angle_to_index(angle, theta_resolution):
