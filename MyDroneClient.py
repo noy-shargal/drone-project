@@ -223,5 +223,5 @@ class MyDroneClient(DroneClient):
     def _initialize_world_coords_dict(self, num_of_angles):
         output = dict()
         for i in range(num_of_angles):
-            output[i] = LidarPointInfo( 0, 0, 0, 0, False)
+            output[i] = LidarPointInfo( 0, 0, np.float(np.inf), 0, False)
         return output
