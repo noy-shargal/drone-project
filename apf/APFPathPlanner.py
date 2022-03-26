@@ -49,10 +49,12 @@ class APFPathPlanner:
     def get_boundaries(self):
         return self._obstacles_reader.get_boundaries()
 
-    def _get_local_potential_map(self, position: Tuple):
-        local_attraction_map_value = self._attraction_map.get_local_values(*position)
+    def _get_local_potential_map(self, position: Tuple, use_attraction = True):
         local_repulsion_map_value = self._repulsion_map.get_local_values(*position)
-        return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
+        if use_attraction:
+            local_attraction_map_value = self._attraction_map.get_local_values(*position)
+            return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
+        return local_repulsion_map_value
 
     @staticmethod
     def weighted_average_of_dicts(dict1, weight1, dict2, weight2):
@@ -79,10 +81,10 @@ class APFPathPlanner:
                     min_j = j
         return min_i, min_j
 
-    def next_step(self, curr_position: Tuple, lidar_points=set):
+    def next_step(self, curr_position: Tuple, lidar_points=set, use_attraction=True):
         distance_to_nearest_obstacle = self._calculate_distance(curr_position[0], curr_position[1], lidar_points)
         current_config.window_size = self._compute_window_size(distance_to_nearest_obstacle)
-        potential_map = self._get_local_potential_map(curr_position)
+        potential_map = self._get_local_potential_map(curr_position, use_attraction)
         unknown_potential_map = self._calculate_unknown_environment_potential(curr_position, lidar_points)
         total_potential = self.weighted_average_of_dicts(potential_map, 1, unknown_potential_map,
                                                          self._unknown_amplification)

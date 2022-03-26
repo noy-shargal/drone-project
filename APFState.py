@@ -40,8 +40,9 @@ class APFState(AlgoStateInterface):
         num_steps = 0
         pos_list = list()
         velocity =  config.apf_velocity
+        is_local_minima= False
         while not self._agent._apf_path_planner.reached_goal(curr_position):
-            next_position = self._agent._apf_path_planner.next_step(curr_position, self._agent._lidar_points)
+            next_position = self._agent._apf_path_planner.next_step(curr_position, self._agent._lidar_points, is_local_minima)
             num_steps += 1
             pos_list.append(Point(*next_position))
 
