@@ -33,6 +33,8 @@ class SmartAgent_v1:
         self._algo_fsm = AlgoFSM(self, AlgoStateEnum.ASTAR, AlgoStateEnum.END)
         self.apf_sleep_after_transition = 0.0
 
+        self.vertices_points = self.obs.get_vertices_points()
+
     def connect_and_spawn(self):
         self.client.reset()
         print("Connecting.....")
@@ -83,7 +85,7 @@ class SmartAgent_v1:
     def is_local_minima(self, pos_list):
         first_pos = pos_list[0]
         last_pos = pos_list[len(pos_list) - 1]
-        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 1.5:
+        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size*1.2:
             if self.is_local_minima_in_map(pos_list):
                 curr_pos = self.client.getPose().pos.x_m, self.client.getPose().pos.x_m
                 print("local minima:"+str(curr_pos)+" ia in MAP - you should have done better !!!")

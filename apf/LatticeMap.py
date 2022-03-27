@@ -230,11 +230,14 @@ class ObstacleMap(LatticeMap):
 
     def update_map(self, x, y, value):
         i, j = self.coord_to_index(x, y)
-        self._map[i, j] = value
+        if (0 <i < self._size_x -1 ) and  (0< y < self._size_y):
+            self._map[i, j] = value
 
     def new_obstacle(self, x, y):
         i, j = self.coord_to_index(x, y)
         return not self._map[i, j]
+
+
 
     def _calculate_save_path(self):
         return 'unit_size=' + str(self._unit_size) + self._SAVED_MAP_PATH

@@ -1,5 +1,5 @@
 import math
-from typing import Tuple, Set
+from typing import Tuple, Set, List
 from copy import deepcopy
 import numpy
 import numpy as np
@@ -110,6 +110,18 @@ class APFPathPlanner:
 
     def _update_obstacle(self, obstacle_position):
         self._obstacles_map.update_map(*obstacle_position, 1)
+
+    def update_obstacles(self, obstacles_positions: List):
+        for p in obstacles_positions:
+            self._update_obstacle((p.x, p.y))
+
+
+    def update_obstacles_local_minima(self, obstacles_positions: List):
+        for p in obstacles_positions:
+            for x in range(int(p.x) - 20, int(p.x) + 20):
+                for y in range(int(p.y) - 20, int(p.y) + 20):
+                    self._update_obstacle((p.x, p.y))
+            self._update_obstacle((p.x, p.y))
 
     def process_lidar_data(self, lidar_sample):
         if self._obstacles_map.new_obstacle(*lidar_sample):

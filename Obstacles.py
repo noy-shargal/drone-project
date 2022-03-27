@@ -218,6 +218,14 @@ class Obstacles:
             poly_json = PersistentPolygons(self._polygons_map)
             poly_json.to_json()
 
+    def get_vertices_points(self):
+        points = []
+        for v in self._vertices_list:
+            if v != self._destination:
+                p = v.point()
+                points.append(p)
+        return points
+
     def is_position_blocked(self, x, y, z):
         key = x, y, z
         return self._points_map[key] is not None

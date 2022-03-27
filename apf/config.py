@@ -82,7 +82,7 @@ finite_repulsion_config1 = FiniteRepulsionConfig(start_position=(-1200.0, -1200.
                                                  unknown_amplification=70,
                                                  use_obstacles_map=False,
                                                  reach_dist=10,
-                                                 window_size=30,
+                                                 window_size=15,
                                                  eta=7,
                                                  lidar_padding=0)
 current_config = finite_repulsion_config1
