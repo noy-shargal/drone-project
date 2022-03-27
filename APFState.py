@@ -46,7 +46,7 @@ class APFState(AlgoStateInterface):
             pos_list.append(Point(*next_position))
 
             ################ LOCAL MINIMA DETECTION ###########################################
-            if num_steps == 10:
+            if num_steps == 15:
                 is_local_minima = self._agent.is_local_minima(pos_list)
                 pos_list = list()
                 num_steps = 0
@@ -86,7 +86,7 @@ class APFState(AlgoStateInterface):
                 curr_position = client.getPose().pos.x_m, client.getPose().pos.y_m
                 self._agent._collect_lidar_points()
 
-                if num_steps == 10:
+                if num_steps == 15:
                     is_local_minima = self._agent.is_local_minima(pos_list)
                     num_steps = 0
                     if is_local_minima:

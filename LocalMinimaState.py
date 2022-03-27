@@ -83,6 +83,7 @@ class LocalMinimaState(AlgoStateInterface):
         obstacle_vector, direction_vector = self._initialize_vectors(full_lidar_scan, world_cords_dict, m_line, pos)
         current_position = start_position
         next_position = None
+        num_of_steps = 0
         while not self._crossed_m_line_at_lower_distance(m_line, d_min, start_position, next_position,
                                                          current_position):
             if not self._wall_word_coordinates(world_cords_dict, current_position, direction_vector,
@@ -90,7 +91,7 @@ class LocalMinimaState(AlgoStateInterface):
                 world_cords_dict, current_position, obstacle_vector, 4.5 * self.WALL_AHEAD_DISTANCE):
                 print("REGULAR STEP")
                 distance_to_wall = self._distance_to_wall_world_coordinates(world_cords_dict, current_position,
-                                                                            direction_vector)
+                                                                            obstacle_vector)
                 if distance_to_wall > self.KEEP_DISTANCE_FROM_WALL:
                     multiply = 0.25
                 else:
@@ -116,6 +117,9 @@ class LocalMinimaState(AlgoStateInterface):
                 world_cords_dict = self._fly_to_position_and_wait(next_position)
             pos = client.getPose().pos
             current_position = Point(pos.x_m, pos.y_m)
+            num_of_steps += 1
+            if num_of_steps == 100:
+                break
         self._stop()
         time.sleep(0.5)
         return AlgoStateEnum.TRANSISTION
@@ -181,7 +185,7 @@ class LocalMinimaState(AlgoStateInterface):
     def _crossed_m_line_at_lower_distance(self, m_line: Vector, d_min: float, start_position: Point,
                                           next_position: Point,
                                           current_position: Point,
-                                          threshold=15,
+                                          threshold=10,
                                           simple_mode=True):
         if next_position is None:
             return False
