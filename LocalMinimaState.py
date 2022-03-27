@@ -63,9 +63,9 @@ class Vector:
 
 
 class LocalMinimaState(AlgoStateInterface):
-    STEP_SIZE = 2
+    STEP_SIZE = 3
     WALL_AHEAD_DISTANCE = 4
-    KEEP_DISTANCE_FROM_WALL = 6
+    KEEP_DISTANCE_FROM_WALL = 5
 
     def __init__(self, agent):
         super().__init__(AlgoStateEnum.LOCAL_MINIMA)
@@ -112,7 +112,7 @@ class LocalMinimaState(AlgoStateInterface):
                 print("TURN BECAUSE OF NO WALL")
                 obstacle_vector, direction_vector = self._rotate_vectors_wall_completed(obstacle_vector,
                                                                                         direction_vector)
-                next_position = self._calculate_next_position(direction_vector, 3, obstacle_vector, -1)
+                next_position = self._calculate_next_position(direction_vector, 1.5, obstacle_vector, -1.5)
                 world_cords_dict = self._fly_to_position_and_wait(next_position)
             pos = client.getPose().pos
             current_position = Point(pos.x_m, pos.y_m)
@@ -136,7 +136,7 @@ class LocalMinimaState(AlgoStateInterface):
         d_min = current_position.distance(target)
         return line, d_min, current_position
 
-    def _rotate_to_face_target_and_scan(self, m_line, step=10):
+    def _rotate_to_face_target_and_scan(self, m_line, step=5):
         speed = 1.25
         pos = self._agent.client.getPose().pos
         current_position = Point(pos.x_m, pos.y_m)

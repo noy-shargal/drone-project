@@ -13,12 +13,9 @@ from apf.Countdowner import Countdowner
 from apf.config import current_config as apf_config
 
 
-
-
 class SmartAgent_v1:
 
     def __init__(self):
-
 
         self._apf_path_planner = None
         self._astar_path_planner = ASTARPathPlanner()
@@ -55,13 +52,12 @@ class SmartAgent_v1:
         diff_x = curr_pos.x - goal.x
         diff_y = curr_pos.y - goal.y
         dist = math.sqrt(diff_x * diff_x + diff_y * diff_y)
-        if dist <threshold:
+        if dist < threshold:
             return True
         return False
 
     def position_to_point(self, pos: Position):
         return Point(pos.x_m, pos.y_m)
-
 
     def fly_to_destination(self):
 
@@ -83,15 +79,15 @@ class SmartAgent_v1:
     def is_local_minima(self, pos_list):
         first_pos = pos_list[0]
         last_pos = pos_list[len(pos_list) - 1]
-        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 1.5:
+        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 3.5:
             if self.is_local_minima_in_map(pos_list):
                 curr_pos = self.client.getPose().pos.x_m, self.client.getPose().pos.x_m
-                print("local minima:"+str(curr_pos)+" ia in MAP - you should have done better !!!")
+                print("local minima:" + str(curr_pos) + " ia in MAP - you should have done better !!!")
             return True
         return False
 
-    def _is_obstacle_in_angle_range(self, lidar_data,  left_angle, right_angle):
-        left_index =   self.client._angle_to_index(left_angle, config.lidar_theta_resolution)
+    def _is_obstacle_in_angle_range(self, lidar_data, left_angle, right_angle):
+        left_index = self.client._angle_to_index(left_angle, config.lidar_theta_resolution)
         right_index = self.client._angle_to_index(right_angle, config.lidar_theta_resolution)
         middle = self.client.zero_angle_to_index(config.lidar_theta_resolution)
 
@@ -99,32 +95,31 @@ class SmartAgent_v1:
         right_obs = False
 
         found_left_index = -1
-        for i_left in range(left_index,middle +1 ):
+        for i_left in range(left_index, middle + 1):
             if lidar_data[i_left] != np.float(np.inf):
                 left_obs = True
                 found_left_index = i_left
                 break
 
         found_right_index = -1
-        for i_right in range(right_index, middle -1 , -1):
+        for i_right in range(right_index, middle - 1, -1):
             if lidar_data[i_right] != np.float(np.inf):
                 right_obs = True
                 found_right_index = i_right
                 break
 
-        return left_obs ,right_obs, found_left_index, found_right_index
-
+        return left_obs, right_obs, found_left_index, found_right_index
 
     def is_wall_ahead(self, angle_fov=config.wall_detection_angle_fov):
-        lidar_data, lidar_coord_dict = self.client.full_lidar_scan_v2(0.5, 0.04)
-        left_obs, right_obs, i_left, i_right = self._is_obstacle_in_angle_range(lidar_data, -0.5 * angle_fov, 0.5 * angle_fov)
+        lidar_data, lidar_coord_dict = self.client.full_lidar_scan_v2(1.4)
+        left_obs, right_obs, i_left, i_right = self._is_obstacle_in_angle_range(lidar_data, -0.5 * angle_fov,
+                                                                                0.5 * angle_fov)
 
         if left_obs and right_obs:
             lidar_point_info = lidar_coord_dict[i_left]
-            print("WALL AHEAD  "+str(lidar_point_info.r)+" meters ahead !!!!")
-            if lidar_point_info.r >= 8:
-                point = Point(lidar_point_info.x, lidar_point_info.y)
-                return True, point
+            print("WALL AHEAD  " + str(lidar_point_info.r) + " meters ahead !!!!")
+            point = Point(lidar_point_info.x, lidar_point_info.y)
+            return True, point
 
         if right_obs:
             print("WALL AHEAD ON THE RIGHT !!!!")
@@ -164,8 +159,6 @@ class SmartAgent_v1:
             time.sleep(0.1)
         return False
 
-
-
     def _collect_lidar_points(self):
         countdowner = Countdowner(0.8)
         countdowner.start()
@@ -185,7 +178,3 @@ class SmartAgent_v1:
         if not self._lidar_points_counter.running():
             self._lidar_points = self._lidar_points[-20:]
             self._lidar_points_counter.start()
-
-
-
-
