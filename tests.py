@@ -11,10 +11,10 @@ from timeit import default_timer as timer
 
 
 class Test:
-    def __init__(self, source:Point, destination: Point):
+    def __init__(self, source:Point, destination: Point, height):
         self._source = source
         self._destination = destination
-        self._height = source.z
+        self._height = height
 
 class Tests:
 
@@ -24,24 +24,24 @@ class Tests:
 
         logging.basicConfig(filename='tests.log', level=logging.DEBUG)
 
-        self.add_test((-1200.0, -1200, -50), (0.0, -600.0, -50))
-        self.add_test((0.0, -600.0, -50), (-1200.0, -1200, -50))
+        self.add_test((-1200.0, -1200), (0.0, -600.0), -50)
+        # self.add_test((0.0, -600.0, -50), (-1200.0, -1200, -50))
+        #
+        # self.add_test((0.0, -1200.0, -50), (-1200.0, -1300, -50))
+        # self.add_test((-1200.0, -1300, -50),(0.0, -1200.0, -50))
+        #
+        # self.add_test((-1200, -850.0, -50), (0, -850, -50))
+        # self.add_test((0, -850, -50), (-1200, -850.0, -50))
+        #
+        # self.add_test((-600, -1200.0, -50), (-600, -400, -50))
+        # self.add_test( (-600, -400, -50), (-600, -1200.0, -50))
 
-        self.add_test((0.0, -1200.0, -50), (-1200.0, -1300, -50))
-        self.add_test((-1200.0, -1300, -50),(0.0, -1200.0, -50))
-
-        self.add_test((-1200, -850.0, -50), (0, -850, -50))
-        self.add_test((0, -850, -50), (-1200, -850.0, -50))
-
-        self.add_test((-600, -1200.0, -50), (-600, -400, -50))
-        self.add_test( (-600, -400, -50), (-600, -1200.0, -50))
 
 
-
-    def add_test(self,  src:Tuple, dst:Tuple):
+    def add_test(self,  src:Tuple, dst:Tuple, height):
         source = Point(*src)
         destination = Point(*dst)
-        self.test_pathes.append(Test (source, destination))
+        self.test_pathes.append(Test (source, destination, height))
 
 
     def run_tests(self):
