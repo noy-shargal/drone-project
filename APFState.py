@@ -88,6 +88,7 @@ class APFState(AlgoStateInterface):
 
                 if num_steps == 10:
                     is_local_minima = self._agent.is_local_minima(pos_list)
+                    pos_list = list()
                     num_steps = 0
                     if is_local_minima:
                         print("Local Minima")

@@ -13,13 +13,13 @@ class Config:
 
         # point 5 to 6
         # self.source = Point(-308.0, -824.0)
-        # self.destination = Point(0.0, -600.0)
-        # end point 5 to 6
-        self.source = Point(-950, -1200)
-        self.destination = Point(-780, -900)
-
-        self.source = Point(-950, -1200)
-        self.destination = Point(-740, -1000)
+        # # self.destination = Point(0.0, -600.0)
+        # # end point 5 to 6
+        # self.source = Point(-950, -1200)
+        # self.destination = Point(-780, -900)
+        #
+        # self.source = Point(-950, -1200)
+        # self.destination = Point(-740, -1000)
 
         self.height = -50
         self.astar_velocity = 10
