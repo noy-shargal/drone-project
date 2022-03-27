@@ -63,8 +63,9 @@ class Vector:
 
 
 class LocalMinimaState(AlgoStateInterface):
-    STEP_SIZE = 4
-    WALL_AHEAD_DISTANCE = 8
+    STEP_SIZE = 2
+    WALL_AHEAD_DISTANCE = 4
+    KEEP_DISTANCE_FROM_WALL = 6
 
     def __init__(self, agent):
         super().__init__(AlgoStateEnum.LOCAL_MINIMA)
@@ -86,13 +87,18 @@ class LocalMinimaState(AlgoStateInterface):
                                                          current_position):
             if not self._wall_word_coordinates(world_cords_dict, current_position, direction_vector,
                                                self.WALL_AHEAD_DISTANCE) and self._wall_word_coordinates(
-                world_cords_dict, current_position, obstacle_vector, 3 * self.WALL_AHEAD_DISTANCE):
+                world_cords_dict, current_position, obstacle_vector, 4.5 * self.WALL_AHEAD_DISTANCE):
                 print("REGULAR STEP")
-                next_position = self._calculate_next_position(direction_vector)
+                distance_to_wall = self._distance_to_wall_world_coordinates(world_cords_dict, current_position,
+                                                                            direction_vector)
+                if distance_to_wall > self.KEEP_DISTANCE_FROM_WALL:
+                    multiply = 0.25
+                else:
+                    multiply = -0.25
+                next_position = self._calculate_next_position(direction_vector, 1, obstacle_vector, multiply)
                 world_cords_dict = self._fly_to_position_and_wait(next_position)
-
             if self._wall_word_coordinates(world_cords_dict, current_position, direction_vector,
-                                           self.WALL_AHEAD_DISTANCE):
+                                           self.WALL_AHEAD_DISTANCE, 1.5, True):
                 print("TURN BECAUSE OF WALL")
 
                 obstacle_vector, direction_vector = self._rotate_vectors_wall_ahead(obstacle_vector,
@@ -102,14 +108,16 @@ class LocalMinimaState(AlgoStateInterface):
                 self._agent.client.full_lidar_scan_v2(1.4)
             elif not self._wall_word_coordinates(
                     world_cords_dict, current_position, obstacle_vector,
-                    3 * self.WALL_AHEAD_DISTANCE):
+                    4.5 * self.WALL_AHEAD_DISTANCE):
                 print("TURN BECAUSE OF NO WALL")
                 obstacle_vector, direction_vector = self._rotate_vectors_wall_completed(obstacle_vector,
                                                                                         direction_vector)
-                next_position = self._calculate_next_position(direction_vector, 3)
+                next_position = self._calculate_next_position(direction_vector, 3, obstacle_vector, -1)
                 world_cords_dict = self._fly_to_position_and_wait(next_position)
             pos = client.getPose().pos
             current_position = Point(pos.x_m, pos.y_m)
+        self._stop()
+        time.sleep(0.5)
         return AlgoStateEnum.TRANSISTION
 
     def exit(self):
@@ -173,13 +181,17 @@ class LocalMinimaState(AlgoStateInterface):
     def _crossed_m_line_at_lower_distance(self, m_line: Vector, d_min: float, start_position: Point,
                                           next_position: Point,
                                           current_position: Point,
-                                          threshold=10):
+                                          threshold=15,
+                                          simple_mode=True):
         if next_position is None:
             return False
         target = self._agent.path[self._agent.astar_curr_point].point()
         distance_to_target = next_position.distance(target)
+        print("DISTANCE TO TARGET :"+str(distance_to_target))
         if distance_to_target > (d_min - threshold):
             return False
+        if simple_mode:
+            return True
         next_in_start = Point(next_position.x - start_position.x, next_position.y - start_position.y)
         current_in_start = Point(current_position.x - start_position.x, current_position.y - start_position.y)
 
@@ -206,8 +218,9 @@ class LocalMinimaState(AlgoStateInterface):
 
     def _wall_word_coordinates(self, world_coordinates: Dict[int, LidarPointInfo], current_location: Point,
                                vector: Vector,
-                               distance=np.float(np.inf)):
-        threshold = 2.5
+                               distance=np.float(np.inf),
+                               threshold=2.5,
+                               verbose=False):
         for point_info in world_coordinates.values():
             if point_info.valid:
                 angle = self._calculate_angle(current_location, vector, point_info.x, point_info.y)
@@ -215,15 +228,34 @@ class LocalMinimaState(AlgoStateInterface):
                     wall_point = Point(point_info.x, point_info.y)
                     distance_to_wall = current_location.distance(wall_point)
                     if distance_to_wall < distance:
+                        if verbose:
+                            print(f"WALL IN {distance_to_wall} METERS AND {angle} degrees")
                         return True
         return False
 
-    def _calculate_next_position(self, direction_vector: Vector, multiple=1):
+    def _distance_to_wall_world_coordinates(self, world_coordinates: Dict[int, LidarPointInfo], current_location: Point,
+                                            vector: Vector):
+        threshold = 2.5
+        for point_info in world_coordinates.values():
+            if point_info.valid:
+                angle = self._calculate_angle(current_location, vector, point_info.x, point_info.y)
+                if angle < threshold:
+                    wall_point = Point(point_info.x, point_info.y)
+                    distance_to_wall = current_location.distance(wall_point)
+                    return distance_to_wall
+        return np.float(np.inf)
+
+    def _calculate_next_position(self, direction_vector: Vector, multiple=1, additional_vector=None,
+                                 additional_multiply=0.01):
         pos = self._agent.client.getPose().pos
         x, y = pos.x_m, pos.y_m
         vx, vy = direction_vector._x, direction_vector._y
         x = x + vx * self.STEP_SIZE * multiple
         y = y + vy * self.STEP_SIZE * multiple
+        if additional_vector is not None:
+            vx_2, vy_2 = additional_vector._x, additional_vector._y
+            x = x + vx_2 * self.STEP_SIZE * additional_multiply
+            y = y + vy_2 * self.STEP_SIZE * additional_multiply
         return Point(x, y)
 
     def _fly_to_position_and_wait(self, next_position: Point):

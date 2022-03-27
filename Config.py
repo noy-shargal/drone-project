@@ -36,7 +36,7 @@ class Config:
         self.wall_detection_angle_fov = 60
 
         self.obstacles_padding = 4
-        self.bug2_velocity = 1
+        self.bug2_velocity = 0.75
 
 
 config = Config()
