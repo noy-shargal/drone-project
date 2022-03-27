@@ -10,7 +10,7 @@ from MyDroneClient import MyDroneClient, LidarPointInfo
 from ASTARPathPlanner import ASTARPathPlanner
 from Config import config
 from apf.Countdowner import Countdowner
-from apf.config import current_config as apf_config
+from apf.config import current_config as apf_config, current_config
 
 
 class SmartAgent_v1:
@@ -79,7 +79,7 @@ class SmartAgent_v1:
     def is_local_minima(self, pos_list):
         first_pos = pos_list[0]
         last_pos = pos_list[len(pos_list) - 1]
-        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 3.5:
+        if first_pos.distance(last_pos) < apf_config.grid_size * (len(pos_list) - 1)*0.5*current_config.window_size:
             if self.is_local_minima_in_map(pos_list):
                 curr_pos = self.client.getPose().pos.x_m, self.client.getPose().pos.x_m
                 print("local minima:" + str(curr_pos) + " ia in MAP - you should have done better !!!")
@@ -159,8 +159,8 @@ class SmartAgent_v1:
             time.sleep(0.1)
         return False
 
-    def _collect_lidar_points(self):
-        countdowner = Countdowner(0.8)
+    def _collect_lidar_points(self, runtime=0.8):
+        countdowner = Countdowner(runtime)
         countdowner.start()
         while countdowner.running():
             sensed_obstacle, lidar_data, pose = self.client.senseObstacle()

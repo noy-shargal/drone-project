@@ -21,7 +21,7 @@ class APFState(AlgoStateInterface):
 
     def enter(self):
         print("ENTER APF STATE")
-
+        self._agent.client.stop()
         if self._agent.astar_curr_point >= len(self._agent.path):
             return AlgoStateEnum.END
         client = self._agent.client
@@ -41,12 +41,13 @@ class APFState(AlgoStateInterface):
         pos_list = list()
         velocity =  config.apf_velocity
         while not self._agent._apf_path_planner.reached_goal(curr_position):
+            self._agent._collect_lidar_points(1.4)
             next_position = self._agent._apf_path_planner.next_step(curr_position, self._agent._lidar_points)
             num_steps += 1
             pos_list.append(Point(*next_position))
 
             ################ LOCAL MINIMA DETECTION ###########################################
-            if num_steps == 20:
+            if num_steps == 5:
                 is_local_minima = self._agent.is_local_minima(pos_list)
                 pos_list = list()
                 num_steps = 0
@@ -65,7 +66,7 @@ class APFState(AlgoStateInterface):
                 curr_position = client.getPose().pos.x_m, client.getPose().pos.y_m
                 self._agent._collect_lidar_points()
 
-                if num_steps == 30:
+                if num_steps == 15:
                     is_local_minima = self._agent.is_local_minima(pos_list)
                     pos_list = list()
                     num_steps = 0

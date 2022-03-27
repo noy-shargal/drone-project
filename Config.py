@@ -22,8 +22,8 @@ class Config:
         # self.destination = Point(-740, -1000)
 
         self.height = -50
-        self.astar_velocity = 17
-        self.apf_velocity = 8
+        self.astar_velocity = 14
+        self.apf_velocity = 3
         self.ltf_velocity = 3
         self.load_from_json = True
         self.show_map = False
@@ -36,7 +36,7 @@ class Config:
         self.wall_detection_angle_fov = 60
 
         self.obstacles_padding = 4
-        self.bug2_velocity = 1.25
+        self.bug2_velocity = 2
 
 
 config = Config()
