@@ -26,7 +26,7 @@ class Config:
         self.apf_velocity = 4
         self.ltf_velocity = 3
         self.load_from_json = True
-        self.show_map = False
+        self.show_map = True
 
         # bug properties
         self.lidar_theta_resolution = 10

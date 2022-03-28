@@ -194,3 +194,7 @@ class APFPathPlanner:
         max_x = np.max((start_position[0], end_position[0])) + padding
         max_y = np.max((start_position[1], end_position[1])) + padding
         return min_x, max_x, min_y, max_y
+
+    def add_new_obstacle(self, lidar_sample):
+        print ("add new obstacle "+str(lidar_sample))
+        return self._obstacles_map.update_map(*lidar_sample, 2)

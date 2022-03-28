@@ -68,7 +68,7 @@ class SmartAgent_v1:
         print("Init position " + str([config.source.x, config.source.y, config.height]))
         self.astar_curr_point = 1
         state_enum = self._algo_fsm.init_state_enum()
-        while state_enum != AlgoStateEnum.END:
+        while state_enum != AlgoStateEnum.TERMINAL:
             next_state_enum = self._algo_fsm.change_state(state_enum)
             state_enum = next_state_enum
 
@@ -177,6 +177,7 @@ class SmartAgent_v1:
                     x, y = self.client.getPointInRealWorldCoords(*lidar_sample, pose)
                     if self._apf_path_planner.new_obstacle((x, y)):
                         point = (round(x, 1), round(y, 1))
+                        self._apf_path_planner.add_new_obstacle((x, y))
                         if not point in self._lidar_points:
                             print(point)
                             self._lidar_points.append(point)

@@ -24,7 +24,9 @@ class Tests:
 
         logging.basicConfig(filename='tests.log', level=logging.DEBUG)
 
-        self.add_test((-1200.0, -1200), (0.0, -600.0), -50)
+        #self.add_test((-1200.0, -1200), (0.0, -600.0), -50)
+        self.add_test((-1200.0, -1200), (-830, -900), -50)
+
         # self.add_test((0.0, -600.0, -50), (-1200.0, -1200, -50))
         #
         # self.add_test((0.0, -1200.0, -50), (-1200.0, -1300, -50))
@@ -55,7 +57,7 @@ class Tests:
     def run_test(self, test: Test):
 
         config.source = test._source
-        config._destination = test._destination
+        config.destination = test._destination
         config.height = test._height
 
         agent = SmartAgent_v1()
