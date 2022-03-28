@@ -99,15 +99,14 @@ class APFState(AlgoStateInterface):
                     time.sleep(3)
 
                     is_wall_ahead, wall_point = self._agent.is_wall_ahead(30)
-                    if not is_wall_ahead:
-                        use_repulsion = False
-                        no_repulsion_step += 1
-                    else:
-                        new_goal = self._agent.move_goal_on_dronee_y_axis()
-                        print ("changing to virtual target "+ str(new_goal))
-
-                        self._agent._apf_path_planner.set_goal(new_goal)
-                        virtual_goal = True
+                    # if not is_wall_ahead:
+                    #     use_repulsion = False
+                    #     no_repulsion_step += 1
+                    # else:
+                    new_goal = self._agent.move_goal_on_dronee_y_axis()
+                    print ("changing to virtual target "+ str(new_goal))
+                    self._agent._apf_path_planner.set_goal(new_goal)
+                    virtual_goal = True
 
                     #return AlgoStateEnum.LOCAL_MINIMA
 
