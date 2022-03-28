@@ -35,6 +35,9 @@ class SmartAgent_v1:
         self._algo_fsm = AlgoFSM(self, AlgoStateEnum.ASTAR, AlgoStateEnum.END)
         self.apf_sleep_after_transition = 0.0
 
+        self._real_path_ration = 20
+        self._real_path_point_couner = 0
+
     def connect_and_spawn(self):
         self.client.reset()
         print("Connecting.....")
