@@ -31,6 +31,7 @@ class SmartAgent_v1:
         self._lidar_points_counter = Countdowner(5.0)
         self._lidar_points = list()
 
+        self._real_path = list()
         self._algo_fsm = AlgoFSM(self, AlgoStateEnum.ASTAR, AlgoStateEnum.END)
         self.apf_sleep_after_transition = 0.0
 
@@ -44,6 +45,15 @@ class SmartAgent_v1:
         print(self.client.isConnected())
         time.sleep(8)
 
+    def position_to_point(self, pos: Position):
+        return Point(pos.x_m, pos.y_m)
+
+    def add_path_point(self, point: Point):
+        self._real_path_point_couner += 1
+
+        if self._real_path_ration == 20:
+            self._real_path_point_couner = 1
+            self._real_path.append(point)
     def reached_goal_2D(self, curr_pos: Position, goal: Position):
         diff_x = curr_pos.x_m - goal.x_m
         diff_y = curr_pos.y_m - goal.y_m
