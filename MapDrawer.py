@@ -47,7 +47,7 @@ class MapDrawer:
 
     def set_point(self, dst: Point):
         self._destination = dst
-        circle = plt.Circle((dst.x, dst.y),radius=10, color='black')
+        circle = plt.Circle((dst.x, dst.y),radius=50, color='black')
         self._ax.add_artist(circle)
 
     def set_path(self, path):

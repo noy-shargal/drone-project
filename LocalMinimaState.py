@@ -269,11 +269,14 @@ class LocalMinimaState(AlgoStateInterface):
         self._agent.client.flyToPosition(next_position.x, next_position.y, config.height, config.bug2_velocity)
         time.sleep(0.5)
         _, world_cords_dict = self._agent.client.full_lidar_scan_v2(1.4)
+        start_time = time.time()
         while not self._agent.point_reached_goal_2D(curr_pos, next_position, 0.5):
             _, world_cords_dict = self._agent.client.full_lidar_scan_v2(1.4)
             pos = self._agent.client.getPose().pos
             x, y = pos.x_m, pos.y_m
             curr_pos = Point(x, y)
+            if time.time() - start_time > 5:
+                break
         return world_cords_dict
 
     def _rotate_vectors_wall_ahead(self, obstacle_vector, direction_vector):

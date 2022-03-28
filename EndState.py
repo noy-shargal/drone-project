@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 from pyvisgraph import Point
 
 from AlgoStateInterface import AlgoStateEnum
@@ -17,14 +18,17 @@ class EndState(AlgoStateInterface):
 
         self._agent.show_real_path()
         map = self._agent._apf_path_planner._obstacles_map.get_map()
-        size_x = self._agent._apf_path_planner._obstacles_map._size_x
-        size_y = self._agent._apf_path_planner._obstacles_map._size_y
-        md = MapDrawer()
-        for i in range(size_x):
-            for j in range(size_y):
-                if map[i, j] == 2:
-                    md.set_point(Point(i, j))
-        md.show()
+        plt.figure()
+        plt.imshow(map, interpolation='nearest')
+        plt.savefig('obstacles.png')
+        # size_x = self._agent._apf_path_planner._obstacles_map._size_x
+        # size_y = self._agent._apf_path_planner._obstacles_map._size_y
+        # md = MapDrawer()
+        # for i in range(size_x):
+        #     for j in range(size_y):
+        #         if map[i, j] == 2:
+        #             md.set_point(Point(i, j))
+        # md.show()
         return AlgoStateEnum.TERMINAL
 
     print("THE END !!!")
