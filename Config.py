@@ -22,11 +22,12 @@ class Config:
         # self.destination = Point(-740, -1000)
 
         self.height = -50
-        self.astar_velocity = 10
+        self.astar_velocity = 9
         self.apf_velocity = 4
+
         self.ltf_velocity = 3
         self.load_from_json = True
-        self.show_map = False
+        self.show_map = True
 
         # bug properties
         self.lidar_theta_resolution = 10
@@ -37,6 +38,9 @@ class Config:
 
         self.obstacles_padding = 4
         self.bug2_velocity = 0.75
+
+        self.virtual_target_factor = 1
+        self.virtual_goal_steps = 16
 
 
 config = Config()

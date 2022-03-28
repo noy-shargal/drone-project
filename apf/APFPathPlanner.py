@@ -16,6 +16,7 @@ class APFPathPlanner:
 
         self._polygons_map = self._obstacles_reader.polygons_map
         self._goal = end_position
+        self._real_goal = end_position
         self._start = start_position
 
         self._grid_unit_size = current_config.grid_size
@@ -29,6 +30,11 @@ class APFPathPlanner:
         self._s = current_config.s
         self._q_star = current_config.q_star
         self._unknown_amplification = current_config.unknown_amplification
+
+    def set_goal(self, new_goal):
+        self._goal = new_goal
+        self._attraction_map.set_goal(new_goal)
+        return
 
     @property
     def s(self):
@@ -49,12 +55,12 @@ class APFPathPlanner:
     def get_boundaries(self):
         return self._obstacles_reader.get_boundaries()
 
-    def _get_local_potential_map(self, position: Tuple, use_attraction = True):
+    def _get_local_potential_map(self, position: Tuple, use_repulsion = True):
+        local_attraction_map_value = self._attraction_map.get_local_values(*position)
         local_repulsion_map_value = self._repulsion_map.get_local_values(*position)
-        if use_attraction:
-            local_attraction_map_value = self._attraction_map.get_local_values(*position)
+        if use_repulsion:
             return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
-        return local_repulsion_map_value
+        return local_attraction_map_value
 
     @staticmethod
     def weighted_average_of_dicts(dict1, weight1, dict2, weight2):
@@ -109,6 +115,20 @@ class APFPathPlanner:
 
         return next_position
 
+    def next_step_no_repulsion(self, curr_position: Tuple, lidar_points=set):
+        distance_to_nearest_obstacle = self._calculate_distance(curr_position[0], curr_position[1], lidar_points)
+        current_config.window_size = self._compute_window_size(distance_to_nearest_obstacle)
+        potential_map = self._get_local_potential_map(curr_position, False)
+        unknown_potential_map = self._calculate_unknown_environment_potential(curr_position, lidar_points)
+        total_potential = self.weighted_average_of_dicts(potential_map, 1, unknown_potential_map,
+                                                         self._unknown_amplification)
+
+        step_indices = min(total_potential, key=total_potential.get)
+
+        next_position = self._attraction_map.index_to_coord(*step_indices)
+
+        return next_position
+
 
     def reached_location(self, curr_position: Tuple, target_position: Tuple):
         diff_x = target_position[0] - curr_position[0]
@@ -117,7 +137,7 @@ class APFPathPlanner:
         return dist < current_config.reach_dist
 
     def reached_goal(self, curr_position: Tuple):
-        return self.reached_location(curr_position, self._goal)
+        return self.reached_location(curr_position, self._real_goal)
 
     @property
     def polygons_map(self):
@@ -137,6 +157,9 @@ class APFPathPlanner:
 
     def new_obstacle(self, lidar_sample):
         return self._obstacles_map.new_obstacle(*lidar_sample)
+
+    def add_new_obstacle(self, lidar_sample):
+        return self._obstacles_map.update_map(*lidar_sample, 2)
 
     def _calculate_unknown_environment_potential(self, curr_position, lidar_points: Set):
         output = dict()

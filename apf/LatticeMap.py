@@ -4,6 +4,8 @@ import math
 import os
 
 from shapely.geometry import Polygon, Point
+
+
 from apf.config import current_config, InfiniteRepulsionConfig
 
 
@@ -81,6 +83,11 @@ class AttractionMap(LatticeMap):
         self._init_lattice()
         print("Finished Attraction latice ....")
 
+    def set_goal(self, new_goal):
+        self._goal = new_goal
+        self._goal_i_j = self.coord_to_index(*self._goal)
+        return
+
     def _attraction_value(self, i, j):
         dist = self._dist(self._goal_i_j, (i, j))
         if dist >= self._d:
@@ -91,9 +98,9 @@ class AttractionMap(LatticeMap):
         pass
         # for i in range(self._size_x):
         #     for j in range(self._size_y):
-        #         # self._map[i, j] = self._attraction_value(i, j)
-        #         # self._max_value = max(self._max_value, self._attraction_value(i, j))
-        #         # self._min_value = min(self._min_value, self._attraction_value(i, j))
+        #         self._map[i, j] = self._attraction_value(i, j)
+        #         self._max_value = max(self._max_value, self._attraction_value(i, j))
+        #         self._min_value = min(self._min_value, self._attraction_value(i, j))
 
     def get_local_values(self, x, y):
         i, j = self.coord_to_index(x, y)
@@ -101,7 +108,7 @@ class AttractionMap(LatticeMap):
         # Top
         for x_iterator in range(-(current_config.window_size - 1) // 2, current_config.window_size // 2 + 1, 1):
             position = (i + x_iterator, j - current_config.window_size // 2)
-            # output[position] = self._map[position[0], position[1]]
+            #output[position] = self._map[position[0], position[1]]
             output[position] =  self._attraction_value(position[0], position[1])
         # Bottom
         for x_iterator in range(-(current_config.window_size - 1) // 2, current_config.window_size // 2 + 1, 1):
@@ -112,10 +119,12 @@ class AttractionMap(LatticeMap):
         for y_iterator in range(-(current_config.window_size - 1) // 2 + 1, current_config.window_size // 2, 1):
             position = (i - current_config.window_size // 2, j + y_iterator)
             output[position] = self._attraction_value(position[0], position[1])
+            #output[position] = self._map[position[0], position[1]]
         # Right
         for y_iterator in range(-(current_config.window_size - 1) // 2 + 1, current_config.window_size // 2, 1):
             position = (i + current_config.window_size // 2, j + y_iterator)
             output[position] = self._attraction_value(position[0], position[1])
+            #output[position] = self._map[position[0], position[1]]
         return output
 
     @property
@@ -212,6 +221,7 @@ class ObstacleMap(LatticeMap):
         self._obstacles = obstacles_dict
         self._init_map()
 
+
     def _obstacle_value(self, i, j):
         x, y = self.index_to_coord(i, j)
         p = Point(x, y)
@@ -241,3 +251,9 @@ class ObstacleMap(LatticeMap):
 
     def _load_map(self):
         self._map = np.load(self._calculate_save_path())
+
+    def get_map(self):
+        return self._map
+
+
+

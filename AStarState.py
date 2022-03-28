@@ -46,6 +46,9 @@ class AStarState(AlgoStateInterface):
                 need_fly_command = False
                 #print("Flying to point number: " + str(self._agent.astar_curr_point) + str([goal.x_m, goal.y_m, goal.z_m]))
 
+            curr_pos = client.getPose().pos
+            point = Point(curr_pos.x_m, curr_pos.y_m)
+            self._agent.add_path_point(point)
             if self._agent.reached_goal_2D(client.getPose().pos, goal):
                 print("Reached goal number : " + str(self._agent.astar_curr_point))
                 self._agent.astar_curr_point += 1

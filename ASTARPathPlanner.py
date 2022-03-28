@@ -1,3 +1,5 @@
+import time
+
 from shapely.geometry import Point
 from Dijkstra import Dijkstra
 from MapDrawer import MapDrawer
@@ -49,14 +51,15 @@ class ASTARPathPlanner:
             polygons = self._obs.get_polygons()
             md.add_polygons(polygons)
             print("Number of polygons is: " + str(len(polygons)))
-            edges = self._obs.get_edges()
+            #edges = self._obs.get_edges()
             #md.add_edges(edges)
             src = self._obs.get_source_vertex()
             dst = self._obs.get_destination_vertex()
             md.set_path(self._astar_path)
             print("Total Distance: " + str(dst.get_distance()))
             print("Number Of vertices visited :" + str(self._astar.get_num_of_vertices_visited()))
-            md.show()
+            #md.show()
+            time.sleep(5)
             print("Total Distance: " + str(dst.get_distance()))
             print("Number Of vertices visited :" + str(self._astar.get_num_of_vertices_visited()))
 

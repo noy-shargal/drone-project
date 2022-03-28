@@ -3,12 +3,16 @@ import time
 from typing import List
 import numpy as np
 from shapely.geometry import Point
+
+import utils
 from AlgoFSM import AlgoFSM
 from AlgoStateInterface import AlgoStateEnum
 from DroneTypes import Position
+from MapDrawer import MapDrawer
 from MyDroneClient import MyDroneClient, LidarPointInfo
 from ASTARPathPlanner import ASTARPathPlanner
 from Config import config
+from apf.APFPathPlanner import APFPathPlanner
 from apf.Countdowner import Countdowner
 from apf.config import current_config as apf_config
 
@@ -17,21 +21,31 @@ from apf.config import current_config as apf_config
 
 class SmartAgent_v1:
 
+
     def __init__(self):
 
-
-        self._apf_path_planner = None
+        start = (config.source.x, config.source.y)
+        goal =(config.destination.x, config.destination.y)
+        self._apf_path_planner = APFPathPlanner(start, goal)
         self._astar_path_planner = ASTARPathPlanner()
         print("Finished A-Star Algorithm")
         self.astar_curr_point = 0
         self.client = MyDroneClient()
         self.path = self._astar_path_planner.get_path()
+
+        self.dynamic_target = self.path[-1]
+
         self.obs = self._astar_path_planner.get_obstacles_object()
         self._lidar_points_counter = Countdowner(5.0)
         self._lidar_points = list()
 
         self._algo_fsm = AlgoFSM(self, AlgoStateEnum.ASTAR, AlgoStateEnum.END)
-        self.apf_sleep_after_transition = 0.0
+        self.apf_sleep_after_transition = 0.
+
+        self._real_path = list()
+
+        self._real_path_ration = 20
+        self._real_path_point_couner = 0
 
     def connect_and_spawn(self):
         self.client.reset()
@@ -42,6 +56,21 @@ class SmartAgent_v1:
         time.sleep(3)
         print(self.client.isConnected())
         time.sleep(8)
+
+    def move_goal_on_dronee_y_axis(self):
+
+        pos = self.client.getPose().pos
+        current_point = Point(pos.x_m, pos.y_m)
+        distance_to_target = current_point.distance(self.path[-1].point())
+        Y_target_goal_in_drone_frame = 0
+        X = distance_to_target * config.virtual_target_factor
+        Y_offset = X
+
+        tmp_goal =  utils.getPointInRealWorldCoords(X, Y_offset, self.client.getPose())
+        return tmp_goal
+
+
+
 
     def reached_goal_2D(self, curr_pos: Position, goal: Position):
         diff_x = curr_pos.x_m - goal.x_m
@@ -62,13 +91,19 @@ class SmartAgent_v1:
     def position_to_point(self, pos: Position):
         return Point(pos.x_m, pos.y_m)
 
+    def add_path_point(self, point: Point):
+        self._real_path_point_couner += 1
+
+        if self._real_path_ration == 20:
+            self._real_path_point_couner = 1
+            self._real_path.append(point)
 
     def fly_to_destination(self):
 
         print("Init position " + str([config.source.x, config.source.y, config.height]))
         self.astar_curr_point = 1
         state_enum = self._algo_fsm.init_state_enum()
-        while state_enum != AlgoStateEnum.END:
+        while state_enum != AlgoStateEnum.TERMINAL_STATE:
             next_state_enum = self._algo_fsm.change_state(state_enum)
             state_enum = next_state_enum
 
@@ -83,7 +118,7 @@ class SmartAgent_v1:
     def is_local_minima(self, pos_list):
         first_pos = pos_list[0]
         last_pos = pos_list[len(pos_list) - 1]
-        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 1.5:
+        if first_pos.distance(last_pos) < apf_config.grid_size * apf_config.window_size * 1.7:
             if self.is_local_minima_in_map(pos_list):
                 curr_pos = self.client.getPose().pos.x_m, self.client.getPose().pos.x_m
                 print("local minima:"+str(curr_pos)+" ia in MAP - you should have done better !!!")
@@ -122,18 +157,18 @@ class SmartAgent_v1:
         if left_obs and right_obs:
             lidar_point_info = lidar_coord_dict[i_left]
             print("WALL AHEAD  "+str(lidar_point_info.r)+" meters ahead !!!!")
-            if lidar_point_info.r >= 8:
+            if lidar_point_info.r < 20:
                 point = Point(lidar_point_info.x, lidar_point_info.y)
                 return True, point
 
-        if right_obs:
-            print("WALL AHEAD ON THE RIGHT !!!!")
-            lidar_point_info = lidar_coord_dict[i_right]
-            point = Point(lidar_point_info.x, lidar_point_info.y)
-            return True, point
-
-        # if left_obs:
-        #     print("WALL AHEAD ON THE LEFT !!!!")
+        # if right_obs:
+        #     print("WALL AHEAD ON THE RIGHT !!!!")
+        #     lidar_point_info = lidar_coord_dict[i_right]
+        #     point = Point(lidar_point_info.x, lidar_point_info.y)
+        #     return True, point
+        #
+        # # if left_obs:
+        # #     print("WALL AHEAD ON THE LEFT !!!!")
         #     lidar_point_info = lidar_coord_dict[i_left]
         #     point = Point(lidar_point_info.x, lidar_point_info.y)
         #     return True, point
@@ -176,15 +211,34 @@ class SmartAgent_v1:
                 for lidar_sample in parsed_lidar_data:
                     x, y = self.client.getPointInRealWorldCoords(*lidar_sample, pose)
                     if self._apf_path_planner.new_obstacle((x, y)):
+                        self._apf_path_planner.add_new_obstacle((x,y))
                         point = (round(x, 1), round(y, 1))
                         if not point in self._lidar_points:
-                            print(point)
-                            self._lidar_points.append(point)
+
+                           #print(point)
+                           self._lidar_points.append(point)
 
     def _clear_lidar_points(self):
         if not self._lidar_points_counter.running():
             self._lidar_points = self._lidar_points[-20:]
             self._lidar_points_counter.start()
+
+    def show_real_path(self):
+
+        start_point = self.path[0].point()
+        destination_point = self.path[-1].point()
+
+        if config.show_map:
+            md = MapDrawer()
+            md.set_source(start_point)
+            md.set_destination(destination_point)
+            md.set_real_path(self._real_path)
+            md.show()
+            time.sleep(5)
+
+    def show_new_obstacles(self):
+
+        self._apf_path_planner._obstacles_map.show()
 
 
 

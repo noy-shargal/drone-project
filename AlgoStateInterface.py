@@ -8,6 +8,7 @@ class AlgoStateEnum(Enum):
     TRANSISTION = 3
     LOCAL_MINIMA = 4
     END = 5
+    TERMINAL_STATE =6
 
 class AlgoStateInterface:
 

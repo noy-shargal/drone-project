@@ -45,9 +45,9 @@ class MapDrawer:
         circle = plt.Circle((dst.x, dst.y),radius=10, color='red', edgecolor='black')
         self._ax.add_artist(circle)
 
-    def set_point(self, dst: Point):
-        self._destination = dst
-        circle = plt.Circle((dst.x, dst.y),radius=10, color='black')
+    def set_point(self, pt: Point, radius= 10):
+
+        circle = plt.Circle((pt.x, pt.y),radius=radius, color='black')
         self._ax.add_artist(circle)
 
     def set_path(self, path):
@@ -60,11 +60,12 @@ class MapDrawer:
 
     def set_real_path(self, path):
 
-        for i in range(len(path) - 1):
-            p1 = path[i]
-            p2 = path[i + 1]
+        for i in range(len(path)):
+            p = path[i]
 
-            self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='red', linewidth=2))
+            circle = plt.Circle((p.x, p.y), radius=3, color='red')
+            #self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='red', linewidth=2))
+            self._ax.add_artist(circle)
 
     @staticmethod
     def show():
