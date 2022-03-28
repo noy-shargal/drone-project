@@ -18,8 +18,8 @@ class LatticeMap:
         self._max_y = max_y
         self._unit_size = current_config.grid_size
 
-        self._size_x = int((max_x - min_x) / current_config.grid_size) + 1000
-        self._size_y = int((max_y - min_y) / current_config.grid_size) + 1000
+        self._size_x = int((max_x - min_x) / current_config.grid_size)
+        self._size_y = int((max_y - min_y) / current_config.grid_size)
         self._data_type = data_type
 
         self._map = np.ndarray((self._size_x, self._size_y), dtype=data_type)

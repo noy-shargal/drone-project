@@ -26,7 +26,7 @@ class SmartAgent_v1:
 
         start = (config.source.x, config.source.y)
         goal =(config.destination.x, config.destination.y)
-        self._apf_path_planner = APFPathPlanner(start, goal)
+        self._apf_path_planner = APFPathPlanner(start,  goal)
         self._astar_path_planner = ASTARPathPlanner()
         print("Finished A-Star Algorithm")
         self.astar_curr_point = 0
@@ -87,6 +87,8 @@ class SmartAgent_v1:
         if dist <threshold:
             return True
         return False
+
+
 
     def position_to_point(self, pos: Position):
         return Point(pos.x_m, pos.y_m)

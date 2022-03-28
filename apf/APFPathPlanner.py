@@ -55,12 +55,11 @@ class APFPathPlanner:
     def get_boundaries(self):
         return self._obstacles_reader.get_boundaries()
 
-    def _get_local_potential_map(self, position: Tuple, use_repulsion = True):
+    def _get_local_potential_map(self, position: Tuple):
         local_attraction_map_value = self._attraction_map.get_local_values(*position)
         local_repulsion_map_value = self._repulsion_map.get_local_values(*position)
-        if use_repulsion:
-            return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
-        return local_attraction_map_value
+        return self.weighted_average_of_dicts(local_attraction_map_value, self._k, local_repulsion_map_value, self._s)
+
 
     @staticmethod
     def weighted_average_of_dicts(dict1, weight1, dict2, weight2):

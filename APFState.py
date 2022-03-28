@@ -66,13 +66,10 @@ class APFState(AlgoStateInterface):
         velocity =  config.apf_velocity
         virtual_goal = False
         virtual_goal_steps = 0
-        use_repulsion = True
-        no_repulsion_step = 0
+
         while not self._agent._apf_path_planner.reached_goal(curr_position):
-            if use_repulsion == True:
-                next_position = self._agent._apf_path_planner.next_step(curr_position, self._agent._lidar_points)
-            else:
-                next_position = self._agent._apf_path_planner.next_step_no_repulsion(curr_position, self._agent._lidar_points)
+            next_position = self._agent._apf_path_planner.next_step(curr_position, self._agent._lidar_points)
+
             num_steps += 1
             pos_list.append(Point(*next_position))
 
@@ -84,21 +81,22 @@ class APFState(AlgoStateInterface):
                 curr_point = Point(*curr_position)
                 goal_point = Point(*self._agent._apf_path_planner._real_goal)
                 dis = curr_point.distance(goal_point)
-
                 print ("Distance to the target = "+ str(dis ))
 
                 num_steps = 0
-                if no_repulsion_step == 2:
-                    no_repulsion_step = 0
-                    use_repulsion = True
 
                 if is_local_minima:
+
                     print("Local Minima")
+
+                    if dis < 25:
+                        return AlgoStateEnum.FLY_TO_GOAL
                     client.stop()
                     #self._rotate_to_face_target_and_scan(curr_point, goal_point)
-                    time.sleep(3)
+                    time.sleep(5)
 
-                    is_wall_ahead, wall_point = self._agent.is_wall_ahead(30)
+
+                    # is_wall_ahead, wall_point = self._agent.is_wall_ahead(30)
                     # if not is_wall_ahead:
                     #     use_repulsion = False
                     #     no_repulsion_step += 1

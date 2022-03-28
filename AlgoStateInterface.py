@@ -9,6 +9,7 @@ class AlgoStateEnum(Enum):
     LOCAL_MINIMA = 4
     END = 5
     TERMINAL_STATE =6
+    FLY_TO_GOAL = 7
 
 class AlgoStateInterface:
 
