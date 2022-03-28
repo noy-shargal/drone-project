@@ -98,7 +98,7 @@ class APFState(AlgoStateInterface):
                     #self._rotate_to_face_target_and_scan(curr_point, goal_point)
                     time.sleep(3)
 
-                    if not self._agent.is_wall_ahead():
+                    if not self._agent.is_wall_ahead(30):
                         use_repulsion = False
                         no_repulsion_step += 1
                     else:
