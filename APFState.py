@@ -92,7 +92,8 @@ class APFState(AlgoStateInterface):
                     num_steps = 0
                     if is_local_minima:
                         print("Local Minima")
-
+                point = Point(*curr_position)
+                self._agent.add_path_point(point)
                 if self._agent._apf_path_planner.reached_goal(curr_position):
                     print("APF REACHED LOCAL GOAL")
                     print("2APF GOAL :" + str(goal) + 'INDEX :' + str(self._agent.astar_curr_point))
