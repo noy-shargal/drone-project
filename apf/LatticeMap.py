@@ -241,3 +241,6 @@ class ObstacleMap(LatticeMap):
 
     def _load_map(self):
         self._map = np.load(self._calculate_save_path())
+
+    def get_map(self):
+        return  self._map

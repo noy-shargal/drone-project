@@ -58,13 +58,17 @@ class MapDrawer:
 
             self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='green', linewidth=2))
 
+
+
     def set_real_path(self, path):
 
-        for i in range(len(path) - 1):
-            p1 = path[i]
-            p2 = path[i + 1]
+        for i in range(len(path)):
+            p = path[i]
 
-            self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='red', linewidth=2))
+            circle = plt.Circle((p.x, p.y), radius=3, color='red')
+            # self._ax.add_patch(plt.Line2D([p1.x, p2.x], [p1.y, p2.y], color='red', linewidth=2))
+            self._ax.add_artist(circle)
+
 
     @staticmethod
     def show():

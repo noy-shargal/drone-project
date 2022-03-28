@@ -6,6 +6,7 @@ from shapely.geometry import Point
 from AlgoFSM import AlgoFSM
 from AlgoStateInterface import AlgoStateEnum
 from DroneTypes import Position
+from MapDrawer import MapDrawer
 from MyDroneClient import MyDroneClient, LidarPointInfo
 from ASTARPathPlanner import ASTARPathPlanner
 from Config import config
@@ -30,8 +31,12 @@ class SmartAgent_v1:
         self._lidar_points_counter = Countdowner(5.0)
         self._lidar_points = list()
 
+        self._real_path = list()
         self._algo_fsm = AlgoFSM(self, AlgoStateEnum.ASTAR, AlgoStateEnum.END)
         self.apf_sleep_after_transition = 0.0
+
+        self._real_path_ration = 20
+        self._real_path_point_couner = 0
 
     def connect_and_spawn(self):
         self.client.reset()
@@ -43,6 +48,15 @@ class SmartAgent_v1:
         print(self.client.isConnected())
         time.sleep(8)
 
+    def position_to_point(self, pos: Position):
+        return Point(pos.x_m, pos.y_m)
+
+    def add_path_point(self, point: Point):
+        self._real_path_point_couner += 1
+
+        if self._real_path_ration == 20:
+            self._real_path_point_couner = 1
+            self._real_path.append(point)
     def reached_goal_2D(self, curr_pos: Position, goal: Position):
         diff_x = curr_pos.x_m - goal.x_m
         diff_y = curr_pos.y_m - goal.y_m
@@ -68,7 +82,7 @@ class SmartAgent_v1:
         print("Init position " + str([config.source.x, config.source.y, config.height]))
         self.astar_curr_point = 1
         state_enum = self._algo_fsm.init_state_enum()
-        while state_enum != AlgoStateEnum.END:
+        while state_enum != AlgoStateEnum.TERMINAL:
             next_state_enum = self._algo_fsm.change_state(state_enum)
             state_enum = next_state_enum
 
@@ -177,6 +191,7 @@ class SmartAgent_v1:
                     x, y = self.client.getPointInRealWorldCoords(*lidar_sample, pose)
                     if self._apf_path_planner.new_obstacle((x, y)):
                         point = (round(x, 1), round(y, 1))
+                        self._apf_path_planner.add_new_obstacle((x, y))
                         if not point in self._lidar_points:
                             print(point)
                             self._lidar_points.append(point)
@@ -186,6 +201,17 @@ class SmartAgent_v1:
             self._lidar_points = self._lidar_points[-20:]
             self._lidar_points_counter.start()
 
+    def show_real_path(self):
 
+        start_point = self.path[0].point()
+        destination_point = self.path[-1].point()
+
+        if config.show_map:
+            md = MapDrawer()
+            md.set_source(start_point)
+            md.set_destination(destination_point)
+            md.set_real_path(self._real_path)
+            md.show()
+            time.sleep(5)
 
 
