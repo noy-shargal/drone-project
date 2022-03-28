@@ -57,30 +57,8 @@ class APFState(AlgoStateInterface):
             x = next_position[0]
             y = next_position[1]
 
-            ############# WALL AHEAD ##########################################################
-            # self._agent._clear_lidar_points()
-            # is_wall_ahead, point = self._agent.is_wall_ahead()
-            # x = next_position[0]
-            # y = next_position[1]
-            # if is_wall_ahead:
-            #     print("WALL AHEAD !!! ")
-            #
-            #     velocity = config.apf_velocity - 2
-            #     assert point is not None
-            #     x, y = self._afine_point(client.getPose().pos.x_m, client.getPose().pos.y_m, point.x, point.y)
-            #     print("AVOIDING WALL AHEAD -> "+str((x,y)))
-            #     next_position = (x,y)
-            #     # curr_position = client.getPose().pos.x_m, client.getPose().pos.y_m
-            #     # client.flyToPosition(x, y, config.height, velocity)
-            #     # while not self._agent._apf_path_planner.reached_location(curr_position, (x,y)):
-            #     #     curr_position = client.getPose().pos.x_m, client.getPose().pos.y_m
-            # else:
-            #     velocity = config.apf_velocity
-            ######################################################################################
-
             client.flyToPosition(x,y , config.height,velocity)
-            # print("fly to position")
-            # print(next_position[0], next_position[1])
+
             self._agent._collect_lidar_points()
             while not self._agent._apf_path_planner.reached_location(curr_position, next_position):
                 curr_position = client.getPose().pos.x_m, client.getPose().pos.y_m

@@ -35,7 +35,7 @@ class SmartAgent_v1:
         self._algo_fsm = AlgoFSM(self, AlgoStateEnum.ASTAR, AlgoStateEnum.END)
         self.apf_sleep_after_transition = 0.0
 
-        self._real_path_ration = 20
+        self._real_path_ration = 1
         self._real_path_point_couner = 0
 
     def connect_and_spawn(self):
@@ -54,8 +54,8 @@ class SmartAgent_v1:
     def add_path_point(self, point: Point):
         self._real_path_point_couner += 1
 
-        if self._real_path_ration == 20:
-            self._real_path_point_couner = 1
+        if self._real_path_point_couner == self._real_path_ration:
+            self._real_path_point_couner = 0
             self._real_path.append(point)
     def reached_goal_2D(self, curr_pos: Position, goal: Position):
         diff_x = curr_pos.x_m - goal.x_m
