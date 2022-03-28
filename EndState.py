@@ -6,7 +6,7 @@ from AlgoStateInterface import AlgoStateInterface
 class EndState(AlgoStateInterface):
 
     def __init__(self, agent):
-        super().__init__(AlgoStateEnum.ASTAR)
+        super().__init__(AlgoStateEnum.END)
         self._agent = agent
 
     def enter(self):
