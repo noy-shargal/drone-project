@@ -98,7 +98,8 @@ class APFState(AlgoStateInterface):
                     #self._rotate_to_face_target_and_scan(curr_point, goal_point)
                     time.sleep(3)
 
-                    if not self._agent.is_wall_ahead(30):
+                    is_wall_ahead, wall_point = self._agent.is_wall_ahead(30)
+                    if not is_wall_ahead:
                         use_repulsion = False
                         no_repulsion_step += 1
                     else:
@@ -130,8 +131,18 @@ class APFState(AlgoStateInterface):
             # print(next_position[0], next_position[1])
 
             self._agent._collect_lidar_points()
+            inner_pos_list = []
+            inner_steps = 0
             while not self._agent._apf_path_planner.reached_location(curr_position, next_position):
                 curr_position = client.getPose().pos.x_m, client.getPose().pos.y_m
+                inner_pos_list.append(Point(*curr_position))
+                inner_steps +=1
+
+                if inner_steps >=10:
+                    is_local_minima =  self._agent.is_local_minima(inner_pos_list)
+                    break
+
+
                 point = Point(*curr_position)
                 self._agent.add_path_point(point)
 

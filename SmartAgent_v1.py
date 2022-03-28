@@ -157,7 +157,7 @@ class SmartAgent_v1:
         if left_obs and right_obs:
             lidar_point_info = lidar_coord_dict[i_left]
             print("WALL AHEAD  "+str(lidar_point_info.r)+" meters ahead !!!!")
-            if lidar_point_info.r < 20:
+            if lidar_point_info.r < 18:
                 point = Point(lidar_point_info.x, lidar_point_info.y)
                 return True, point
 
