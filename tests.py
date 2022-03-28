@@ -25,7 +25,7 @@ class Tests:
         logging.basicConfig(filename='tests.log', level=logging.DEBUG)
 
         #self.add_test((-1200.0, -1200), (0.0, -600.0), -50)
-        self.add_test((-1200.0, -1200), (-830, -900), -50)
+        self.add_test((-1000.0, -1000), (-830, -900), -50)
 
         # self.add_test((0.0, -600.0, -50), (-1200.0, -1200, -50))
         #

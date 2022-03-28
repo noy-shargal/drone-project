@@ -6,6 +6,7 @@ from shapely.geometry import Point
 from AlgoFSM import AlgoFSM
 from AlgoStateInterface import AlgoStateEnum
 from DroneTypes import Position
+from MapDrawer import MapDrawer
 from MyDroneClient import MyDroneClient, LidarPointInfo
 from ASTARPathPlanner import ASTARPathPlanner
 from Config import config
@@ -187,6 +188,17 @@ class SmartAgent_v1:
             self._lidar_points = self._lidar_points[-20:]
             self._lidar_points_counter.start()
 
+    def show_real_path(self):
 
+        start_point = self.path[0].point()
+        destination_point = self.path[-1].point()
+
+        if config.show_map:
+            md = MapDrawer()
+            md.set_source(start_point)
+            md.set_destination(destination_point)
+            md.set_real_path(self._real_path)
+            md.show()
+            time.sleep(5)
 
 
